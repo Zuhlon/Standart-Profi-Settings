@@ -72,6 +72,7 @@ interface PrototypeState {
   toggleScenarioTags: (crm: CrmType, id: string) => void;
   renameScenario: (crm: CrmType, id: string, newName: string) => void;
   duplicateScenario: (crm: CrmType, id: string, newName: string, employeeIds: string[]) => void;
+  deleteScenario: (crm: CrmType, id: string) => void;
 }
 
 // --- Toggle factories ---
@@ -248,6 +249,20 @@ export const usePrototypeStore = create<PrototypeState>()(
           return {
             [scenariosKey]: [...scenarios, copy],
             selectedScenarioId: { ...state.selectedScenarioId, [crm]: newId },
+          };
+        }),
+
+      deleteScenario: (crm, id) =>
+        set((state) => {
+          const scenariosKey = crm === 'amocrm' ? 'amocrmScenarios' : 'bitrix24Scenarios';
+          const scenarios = state[scenariosKey];
+          const filtered = scenarios.filter((s) => s.id !== id);
+          if (filtered.length === 0) return state; // don't delete last
+          const currentSelected = state.selectedScenarioId[crm];
+          const newSelected = currentSelected === id ? filtered[0].id : currentSelected;
+          return {
+            [scenariosKey]: filtered,
+            selectedScenarioId: { ...state.selectedScenarioId, [crm]: newSelected },
           };
         }),
     }),

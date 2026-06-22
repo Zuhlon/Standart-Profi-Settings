@@ -3,7 +3,7 @@
 import { usePrototypeStore, type CrmType } from '@/store/prototype-store';
 import { CrmToggle, LockedExtendedBlock } from './CrmToggle';
 import { ModeTabs } from './ModeTabs';
-import { ScenarioCard, DuplicateModal, DuplicateLoadingModal, LoadingOverlay } from './SharedComponents';
+import { ScenarioCard, DuplicateModal, DuplicateLoadingModal, DeleteConfirmModal, LoadingOverlay } from './SharedComponents';
 import { cn } from '@/lib/utils';
 import {
   CircleHelp, X, RefreshCw, Plus, Search, Pencil,
@@ -22,6 +22,7 @@ function ScenarioSidebar({ crm, search, onDuplicate, disabled }: {
   const filtered = list.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
   const [loadingDuplicateId, setLoadingDuplicateId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleDuplicate = (scenarioId: string) => {
@@ -45,7 +46,15 @@ function ScenarioSidebar({ crm, search, onDuplicate, disabled }: {
   // Cleanup timer on unmount
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
+  const handleDelete = () => {
+    if (!deleteId) return;
+    const { deleteScenario } = usePrototypeStore.getState();
+    deleteScenario(crm, deleteId);
+    setDeleteId(null);
+  };
+
   const loadingScenario = loadingDuplicateId ? list.find((s) => s.id === loadingDuplicateId) : null;
+  const deleteScenario = deleteId ? list.find((s) => s.id === deleteId) : null;
 
   return (
     <>
@@ -69,6 +78,7 @@ function ScenarioSidebar({ crm, search, onDuplicate, disabled }: {
               onSelect={() => selectScenario(crm, scenario.id)}
               crm={crm}
               onDuplicate={() => handleDuplicate(scenario.id)}
+              onDelete={() => setDeleteId(scenario.id)}
               disabled={disabled}
               duplicateLoading={loadingDuplicateId === scenario.id}
             />
@@ -78,6 +88,16 @@ function ScenarioSidebar({ crm, search, onDuplicate, disabled }: {
 
       {loadingScenario && (
         <DuplicateLoadingModal scenarioName={loadingScenario.name} />
+      )}
+
+      {deleteScenario && (
+        <DeleteConfirmModal
+          open={!!deleteId}
+          onClose={() => setDeleteId(null)}
+          crm={crm}
+          scenario={deleteScenario}
+          onConfirm={handleDelete}
+        />
       )}
 
       <DuplicateModal
@@ -210,6 +230,16 @@ export function AmoCRMPrototype() {
           {modeLoading && <LoadingOverlay />}
 
           <div className="max-w-[720px] mx-auto p-5 space-y-5">
+            {/* Search — above mode tabs */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <input
+                type="text" placeholder="Поиск по номеру"
+                value={search} onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-8 pl-8 pr-3 text-[12px] border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:border-gray-300"
+              />
+            </div>
+
             {/* Mode tabs — inside scenario */}
             <ModeTabs />
 
@@ -229,16 +259,6 @@ export function AmoCRMPrototype() {
                   <CrmToggle key={setting.id} setting={setting} disabled={setting.mode === 'extended' && activeMode === 'basic'} onToggle={() => toggleGlobal('amocrm', setting.id)} />
                 ))}
               </div>
-            </div>
-
-            {/* Search — outside scenario settings */}
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input
-                type="text" placeholder="Поиск по номеру"
-                value={search} onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-8 pl-8 pr-3 text-[12px] border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:border-gray-300"
-              />
             </div>
 
             {/* Scenario selector */}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { usePrototypeStore, type CrmType, type Scenario, MOCK_EMPLOYEES } from '@/store/prototype-store';
 import { cn } from '@/lib/utils';
-import { Copy, Trash2, X, Check, User, Loader2 } from 'lucide-react';
+import { Copy, Trash2, X, Check, User, Loader2, AlertTriangle } from 'lucide-react';
 
 /* ─── Duplicate Modal ─── */
 
@@ -135,14 +135,62 @@ export function DuplicateLoadingModal({ scenarioName }: { scenarioName: string }
   );
 }
 
+/* ─── Delete Confirm Modal ─── */
+
+export function DeleteConfirmModal({ open, onClose, crm, scenario, onConfirm }: {
+  open: boolean;
+  onClose: () => void;
+  crm: CrmType;
+  scenario: Scenario | undefined;
+  onConfirm: () => void;
+}) {
+  if (!open || !scenario) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-xl w-[380px] flex flex-col">
+        <div className="px-5 py-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+            </div>
+            <div>
+              <h3 className="text-[14px] font-semibold text-gray-900">Удалить сценарий?</h3>
+              <p className="text-[13px] text-gray-500 mt-1">
+                Сценарий <span className="font-medium text-gray-700">«{scenario.name}»</span> будет удалён без возможности восстановления.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-[13px] text-gray-600 hover:text-gray-800 font-medium cursor-pointer"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={() => { onConfirm(); onClose(); }}
+            className="px-5 py-2 text-[13px] font-semibold rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors cursor-pointer"
+          >
+            Удалить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Shared Scenario Card ─── */
 
-export function ScenarioCard({ scenario, selected, onSelect, crm, onDuplicate, disabled, duplicateLoading }: {
+export function ScenarioCard({ scenario, selected, onSelect, crm, onDuplicate, onDelete, disabled, duplicateLoading }: {
   scenario: Scenario;
   selected: boolean;
   onSelect: () => void;
   crm: CrmType;
   onDuplicate: () => void;
+  onDelete: () => void;
   disabled?: boolean;
   duplicateLoading?: boolean;
 }) {
@@ -202,7 +250,7 @@ export function ScenarioCard({ scenario, selected, onSelect, crm, onDuplicate, d
             )}
           </button>
           <button
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); if (!disabled && !duplicateLoading) onDelete(); }}
             disabled={disabled || duplicateLoading}
             className={cn('p-1 rounded transition-colors', (disabled || duplicateLoading) ? 'cursor-not-allowed' : 'hover:bg-red-50 cursor-pointer')}
             title="Удалить"
