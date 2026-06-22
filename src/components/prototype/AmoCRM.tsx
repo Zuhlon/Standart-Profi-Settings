@@ -11,8 +11,6 @@ import {
   Search,
   Pencil,
   Trash2,
-  Tag,
-  ChevronDown,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -172,70 +170,40 @@ function CallSectionPanel({
   );
 }
 
-function ScenarioTagsSection({ scenarioId }: { scenarioId: string }) {
-  const { activeMode } = usePrototypeStore();
-  const [selectedTag, setSelectedTag] = useState('none');
-
-  const tags = [
-    { value: 'none', label: 'Не выбрано' },
-    { value: 'utm_source', label: 'utm_source' },
-    { value: 'utm_medium', label: 'utm_medium' },
-    { value: 'utm_campaign', label: 'utm_campaign' },
-    { value: 'utm_content', label: 'utm_content' },
-    { value: 'utm_term', label: 'utm_term' },
-  ];
-
+function ScenarioSettingsSection({ crm, scenarioId }: { crm: CrmType; scenarioId: string }) {
+  const { activeMode, toggleScenarioTags } = usePrototypeStore();
+  const scenarios = crm === 'amocrm' ? usePrototypeStore.getState().amocrmScenarios : usePrototypeStore.getState().bitrix24Scenarios;
+  const scenario = scenarios.find((s) => s.id === scenarioId);
+  const tagsEnabled = scenario?.tagsEnabled ?? false;
   const isDisabled = activeMode === 'basic';
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
+    <div className="space-y-2">
+      <h3 className="text-[13px] font-semibold text-gray-800">Настройки сценария</h3>
+      <div className={cn('flex items-center justify-between py-1.5', isDisabled && 'opacity-60')}>
         <div className="flex items-center gap-2">
-          <Tag className="w-4 h-4 text-gray-400" />
-          <h3 className="text-[13px] font-semibold text-gray-800">
-            Настройки сценария / Теги
-          </h3>
+          <button
+            onClick={() => !isDisabled && toggleScenarioTags(crm, scenarioId)}
+            disabled={isDisabled}
+            className={cn(
+              'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+              tagsEnabled ? 'bg-amber-400' : 'bg-gray-300',
+              isDisabled && 'cursor-not-allowed'
+            )}
+          >
+            <span
+              className={cn(
+                'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out',
+                tagsEnabled ? 'translate-x-4' : 'translate-x-0'
+              )}
+            />
+          </button>
+          <span className="text-[13px] text-gray-800">Теги</span>
+          <CircleHelp className="w-3.5 h-3.5 text-gray-400 cursor-help flex-shrink-0" />
         </div>
-        <button className="text-[12px] text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1 cursor-pointer">
-          <CircleHelp className="w-3.5 h-3.5" />
-          Помощь
+        <button className="text-[12px] text-blue-500 hover:text-blue-600 font-medium cursor-pointer">
+          Настроить
         </button>
-      </div>
-
-      <div className={cn('space-y-2', isDisabled && 'opacity-60 pointer-events-none')}>
-        <div className="flex items-center gap-3">
-          <span className="text-[13px] text-gray-600 min-w-[140px]">UTM-метка</span>
-          <div className="relative flex-1 max-w-[280px]">
-            <select
-              value={selectedTag}
-              onChange={(e) => setSelectedTag(e.target.value)}
-              className="w-full h-8 pl-3 pr-8 text-[13px] border border-gray-200 rounded-md bg-white appearance-none cursor-pointer focus:outline-none focus:border-gray-300"
-            >
-              {tags.map((tag) => (
-                <option key={tag.value} value={tag.value}>
-                  {tag.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <span className="text-[13px] text-gray-600 min-w-[140px]">Добавлять теги</span>
-          <div className="relative flex-1 max-w-[280px]">
-            <select
-              defaultValue="none"
-              className="w-full h-8 pl-3 pr-8 text-[13px] border border-gray-200 rounded-md bg-white appearance-none cursor-pointer focus:outline-none focus:border-gray-300"
-            >
-              <option value="none">Не выбрано</option>
-              <option value="source">Источник звонка</option>
-              <option value="number">Номер телефона</option>
-              <option value="line">Линия</option>
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -325,9 +293,9 @@ export function AmoCRMPrototype() {
               </div>
             </div>
 
-            {/* Scenario Tags Section */}
+            {/* Scenario settings / Tags */}
             <div className="border-t border-gray-100 pt-4">
-              <ScenarioTagsSection scenarioId={selectedScenario.id} />
+              <ScenarioSettingsSection crm="amocrm" scenarioId={selectedScenario.id} />
             </div>
 
             {/* Incoming calls */}

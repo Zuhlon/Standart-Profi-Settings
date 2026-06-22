@@ -29,6 +29,7 @@ export interface Scenario {
   count: number;
   unit: string;
   enabled: boolean;
+  tagsEnabled: boolean;
   settings: {
     incoming: CallSection;
     outgoing: CallSection;
@@ -51,6 +52,7 @@ interface PrototypeState {
   toggleSetting: (crm: CrmType, scenarioId: string, sectionType: 'incoming' | 'outgoing', subsectionId: string, toggleId: string) => void;
   getExtendedConfiguredToggles: (crm: CrmType, scenarioId: string) => { label: string; enabled: boolean }[];
   toggleScenarioEnabled: (crm: CrmType, id: string) => void;
+  toggleScenarioTags: (crm: CrmType, id: string) => void;
 }
 
 // --- Toggle factories per PDF distribution ---
@@ -121,6 +123,7 @@ const createDefaultScenario = (id: string, name: string, count: number, unit: st
   count,
   unit,
   enabled: true,
+  tagsEnabled: false,
   settings: {
     incoming: createCallSection('incoming'),
     outgoing: createCallSection('outgoing'),
@@ -224,6 +227,16 @@ export const usePrototypeStore = create<PrototypeState>()(
           return {
             [scenariosKey]: state[scenariosKey].map((s) =>
               s.id === id ? { ...s, enabled: !s.enabled } : s
+            ),
+          };
+        }),
+
+      toggleScenarioTags: (crm, id) =>
+        set((state) => {
+          const scenariosKey = crm === 'amocrm' ? 'amocrmScenarios' : 'bitrix24Scenarios';
+          return {
+            [scenariosKey]: state[scenariosKey].map((s) =>
+              s.id === id ? { ...s, tagsEnabled: !s.tagsEnabled } : s
             ),
           };
         }),
