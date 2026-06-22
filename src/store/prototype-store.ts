@@ -53,6 +53,7 @@ interface PrototypeState {
   getExtendedConfiguredToggles: (crm: CrmType, scenarioId: string) => { label: string; enabled: boolean }[];
   toggleScenarioEnabled: (crm: CrmType, id: string) => void;
   toggleScenarioTags: (crm: CrmType, id: string) => void;
+  renameScenario: (crm: CrmType, id: string, newName: string) => void;
 }
 
 // --- Toggle factories per PDF distribution ---
@@ -237,6 +238,16 @@ export const usePrototypeStore = create<PrototypeState>()(
           return {
             [scenariosKey]: state[scenariosKey].map((s) =>
               s.id === id ? { ...s, tagsEnabled: !s.tagsEnabled } : s
+            ),
+          };
+        }),
+
+      renameScenario: (crm, id, newName) =>
+        set((state) => {
+          const scenariosKey = crm === 'amocrm' ? 'amocrmScenarios' : 'bitrix24Scenarios';
+          return {
+            [scenariosKey]: state[scenariosKey].map((s) =>
+              s.id === id ? { ...s, name: newName } : s
             ),
           };
         }),
