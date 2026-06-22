@@ -5,6 +5,120 @@ import { usePrototypeStore, type CrmType, type Scenario, MOCK_EMPLOYEES } from '
 import { cn } from '@/lib/utils';
 import { Copy, Trash2, X, Check, User, Loader2, AlertTriangle } from 'lucide-react';
 
+/* ─── Add Scenario Modal ─── */
+
+export function AddScenarioModal({ open, onClose, crm }: {
+  open: boolean;
+  onClose: () => void;
+  crm: CrmType;
+}) {
+  const { createScenario } = usePrototypeStore();
+  const [name, setName] = useState('');
+  const [selected, setSelected] = useState<string[]>([]);
+
+  if (!open) return null;
+
+  const toggleEmployee = (id: string) => {
+    setSelected((prev) => prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]);
+  };
+
+  const canSubmit = name.trim().length > 0 && selected.length > 0;
+
+  const handleDone = () => {
+    if (!canSubmit) return;
+    createScenario(crm, name.trim(), selected);
+    setName('');
+    setSelected([]);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-xl w-[420px] max-h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="text-[14px] font-semibold text-gray-900">Новый сценарий</h3>
+          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 cursor-pointer">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {/* Name */}
+          <div>
+            <label className="block text-[12px] font-medium text-gray-600 mb-1.5">Название сценария</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Введите название"
+              className="w-full h-9 px-3 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400"
+              autoFocus
+            />
+          </div>
+
+          {/* Employee selection */}
+          <div>
+            <label className="block text-[12px] font-medium text-gray-600 mb-1.5">
+              Сотрудники
+              {selected.length > 0 && (
+                <span className="ml-1.5 text-[11px] text-blue-500 font-normal">
+                  Выбрано: {selected.length}
+                </span>
+              )}
+            </label>
+            <div className="border border-gray-200 rounded-lg max-h-[220px] overflow-y-auto">
+              {MOCK_EMPLOYEES.map((emp) => (
+                <label
+                  key={emp.id}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors',
+                    selected.includes(emp.id) ? 'bg-blue-50' : 'hover:bg-gray-50'
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(emp.id)}
+                    onChange={() => toggleEmployee(emp.id)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400"
+                  />
+                  <User className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span className="text-[13px] text-gray-700">{emp.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-[13px] text-gray-600 hover:text-gray-800 font-medium cursor-pointer"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={handleDone}
+            disabled={!canSubmit}
+            className={cn(
+              'px-5 py-2 text-[13px] font-semibold rounded-lg transition-colors flex items-center gap-1.5',
+              canSubmit
+                ? 'bg-amber-400 hover:bg-amber-500 text-gray-900 cursor-pointer'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            )}
+          >
+            <Check className="w-4 h-4" />
+            Готово
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Duplicate Modal ─── */
 
 export function DuplicateModal({ open, onClose, crm, sourceScenario }: {

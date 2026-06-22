@@ -3,7 +3,7 @@
 import { usePrototypeStore, type CrmType } from '@/store/prototype-store';
 import { CrmToggle, LockedExtendedBlock } from './CrmToggle';
 import { ModeTabs } from './ModeTabs';
-import { ScenarioCard, DuplicateModal, DuplicateLoadingModal, DeleteConfirmModal, LoadingOverlay } from './SharedComponents';
+import { ScenarioCard, DuplicateModal, DuplicateLoadingModal, DeleteConfirmModal, AddScenarioModal, LoadingOverlay } from './SharedComponents';
 import { cn } from '@/lib/utils';
 import {
   CircleHelp, X, RefreshCw, Plus, Search, Pencil,
@@ -23,6 +23,7 @@ function ScenarioSidebar({ crm, search, onDuplicate, disabled }: {
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
   const [loadingDuplicateId, setLoadingDuplicateId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleDuplicate = (scenarioId: string) => {
@@ -61,7 +62,7 @@ function ScenarioSidebar({ crm, search, onDuplicate, disabled }: {
       <div className="w-[260px] shrink-0 border-r border-gray-100 bg-white flex flex-col h-full">
         <div className="p-3 border-b border-gray-100">
           <h3 className="text-[13px] font-semibold text-gray-800 mb-2">Мои сценарии</h3>
-          <button className="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-gray-700 cursor-pointer">
+          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-gray-700 cursor-pointer">
             <Plus className="w-3.5 h-3.5" />
             Добавить сценарий
           </button>
@@ -99,6 +100,8 @@ function ScenarioSidebar({ crm, search, onDuplicate, disabled }: {
           onConfirm={handleDelete}
         />
       )}
+
+      <AddScenarioModal open={showAddModal} onClose={() => setShowAddModal(false)} crm={crm} />
 
       <DuplicateModal
         key={duplicateId}

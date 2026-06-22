@@ -73,6 +73,7 @@ interface PrototypeState {
   renameScenario: (crm: CrmType, id: string, newName: string) => void;
   duplicateScenario: (crm: CrmType, id: string, newName: string, employeeIds: string[]) => void;
   deleteScenario: (crm: CrmType, id: string) => void;
+  createScenario: (crm: CrmType, name: string, employeeIds: string[]) => void;
 }
 
 // --- Toggle factories ---
@@ -263,6 +264,31 @@ export const usePrototypeStore = create<PrototypeState>()(
           return {
             [scenariosKey]: filtered,
             selectedScenarioId: { ...state.selectedScenarioId, [crm]: newSelected },
+          };
+        }),
+
+      createScenario: (crm, name, employeeIds) =>
+        set((state) => {
+          const scenariosKey = crm === 'amocrm' ? 'amocrmScenarios' : 'bitrix24Scenarios';
+          const scenarios = state[scenariosKey];
+          const unit = crm === 'amocrm' ? 'пользователей' : 'номеров';
+          const newId = `scenario_${Date.now()}`;
+          const newScenario: Scenario = {
+            id: newId,
+            name,
+            count: employeeIds.length,
+            unit,
+            enabled: true,
+            tagsEnabled: false,
+            isStandard: false,
+            settings: {
+              incoming: createCallSection('incoming'),
+              outgoing: createCallSection('outgoing'),
+            },
+          };
+          return {
+            [scenariosKey]: [...scenarios, newScenario],
+            selectedScenarioId: { ...state.selectedScenarioId, [crm]: newId },
           };
         }),
     }),
