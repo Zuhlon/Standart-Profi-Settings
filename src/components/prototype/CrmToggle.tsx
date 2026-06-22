@@ -52,7 +52,7 @@ interface LockedExtendedBlockProps {
 }
 
 export function LockedExtendedBlock({ crm, scenarioId }: LockedExtendedBlockProps) {
-  const { activeMode, setMode, getExtendedConfiguredToggles } = usePrototypeStore();
+  const { activeMode, setMode, getExtendedConfiguredToggles, modeLoading } = usePrototypeStore();
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -108,8 +108,12 @@ export function LockedExtendedBlock({ crm, scenarioId }: LockedExtendedBlockProp
             <Info className="w-3 h-3 text-blue-500" />
           </button>
           <button
-            onClick={() => setMode('extended')}
-            className="text-[11px] text-blue-500 hover:text-blue-600 font-medium cursor-pointer"
+            onClick={() => !modeLoading && setMode('extended')}
+            disabled={modeLoading}
+            className={cn(
+              'text-[11px] font-medium',
+              modeLoading ? 'text-blue-300 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600 cursor-pointer'
+            )}
           >
             Открыть →
           </button>
@@ -130,8 +134,12 @@ export function LockedExtendedBlock({ crm, scenarioId }: LockedExtendedBlockProp
           </div>
           <div className="mt-2 pt-2 border-t border-gray-100">
             <button
-              onClick={() => { setShowTooltip(false); setMode('extended'); }}
-              className="text-[11px] text-blue-500 hover:text-blue-600 font-medium cursor-pointer"
+              onClick={() => { setShowTooltip(false); if (!modeLoading) setMode('extended'); }}
+              disabled={modeLoading}
+              className={cn(
+                'text-[11px] font-medium',
+                modeLoading ? 'text-blue-300 cursor-not-allowed' : 'text-blue-500 hover:text-blue-600 cursor-pointer'
+              )}
             >
               Перейти к редактированию →
             </button>

@@ -30,15 +30,32 @@ export interface Scenario {
   unit: string;
   enabled: boolean;
   tagsEnabled: boolean;
+  isStandard?: boolean;
   settings: {
     incoming: CallSection;
     outgoing: CallSection;
   };
 }
 
+export interface Employee {
+  id: string;
+  name: string;
+}
+
+export const MOCK_EMPLOYEES: Employee[] = [
+  { id: 'emp1', name: 'Иванов Иван' },
+  { id: 'emp2', name: 'Петров Пётр' },
+  { id: 'emp3', name: 'Сидорова Анна' },
+  { id: 'emp4', name: 'Козлов Дмитрий' },
+  { id: 'emp5', name: 'Новикова Елена' },
+  { id: 'emp6', name: 'Морозов Андрей' },
+  { id: 'emp7', name: 'Волкова Мария' },
+];
+
 interface PrototypeState {
   activeCrm: CrmType;
   activeMode: ModeType;
+  modeLoading: boolean;
   amocrmScenarios: Scenario[];
   bitrix24Scenarios: Scenario[];
   amocrmGlobal: ToggleSetting[];
@@ -54,11 +71,11 @@ interface PrototypeState {
   toggleScenarioEnabled: (crm: CrmType, id: string) => void;
   toggleScenarioTags: (crm: CrmType, id: string) => void;
   renameScenario: (crm: CrmType, id: string, newName: string) => void;
+  duplicateScenario: (crm: CrmType, id: string, newName: string, employeeIds: string[]) => void;
 }
 
-// --- Toggle factories per PDF distribution ---
+// --- Toggle factories ---
 
-// Basic toggles (same for all subsections)
 const basicToggles: ToggleSetting[] = [
   { id: 'create_deal', label: 'Создать сделку / лид', mode: 'basic', enabled: true, hasInfo: true, hasConfigure: true },
   { id: 'create_task_answered', label: 'Создать задачу на отвеченный звонок', mode: 'basic', enabled: true, hasInfo: true, hasConfigure: true },
@@ -66,7 +83,6 @@ const basicToggles: ToggleSetting[] = [
   { id: 'transfer_recordings', label: 'Передавать записи звонков', mode: 'basic', enabled: true, hasInfo: true, hasConfigure: true },
 ];
 
-// Extended toggles: incoming_existing (full set)
 const extendedTogglesIncomingExisting: ToggleSetting[] = [
   { id: 'transfer_between_employees', label: 'Передавать звонки между сотрудниками', mode: 'extended', enabled: true, hasInfo: true, hasConfigure: true },
   { id: 'force_create_lead', label: 'Принудительно создавать лид для всех звонков', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
@@ -75,7 +91,6 @@ const extendedTogglesIncomingExisting: ToggleSetting[] = [
   { id: 'utm_tag', label: 'Выбрать utm-метку (тег)', mode: 'extended', enabled: false, hasInfo: false, hasConfigure: true },
 ];
 
-// Extended toggles: incoming_new (no "force_create_lead")
 const extendedTogglesIncomingNew: ToggleSetting[] = [
   { id: 'transfer_between_employees', label: 'Передавать звонки между сотрудниками', mode: 'extended', enabled: true, hasInfo: true, hasConfigure: true },
   { id: 'speech_analytics', label: 'Передавать данные речевой аналитики', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
@@ -83,14 +98,12 @@ const extendedTogglesIncomingNew: ToggleSetting[] = [
   { id: 'utm_tag', label: 'Выбрать utm-метку (тег)', mode: 'extended', enabled: false, hasInfo: false, hasConfigure: true },
 ];
 
-// Extended toggles: outgoing_existing (no UTM, no Назначить)
 const extendedTogglesOutgoingExisting: ToggleSetting[] = [
   { id: 'transfer_between_employees', label: 'Передавать звонки между сотрудниками', mode: 'extended', enabled: true, hasInfo: true, hasConfigure: true },
   { id: 'force_create_lead', label: 'Принудительно создавать лид для всех звонков', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
   { id: 'speech_analytics', label: 'Передавать данные речевой аналитики', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
 ];
 
-// Extended toggles: outgoing_new (minimal)
 const extendedTogglesOutgoingNew: ToggleSetting[] = [
   { id: 'transfer_between_employees', label: 'Передавать звонки между сотрудниками', mode: 'extended', enabled: true, hasInfo: true, hasConfigure: true },
   { id: 'speech_analytics', label: 'Передавать данные речевой аналитики', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
@@ -104,31 +117,16 @@ const createCallSection = (type: 'incoming' | 'outgoing'): CallSection => {
     id: type,
     label: type === 'incoming' ? 'Входящие звонки' : 'Исходящие звонки',
     subsections: [
-      {
-        id: `${type}_existing`,
-        label: `${prefix}, который есть в CRM`,
-        toggles: [...basicToggles, ...existingExtended],
-      },
-      {
-        id: `${type}_new`,
-        label: `${prefix}, которого нет в CRM`,
-        toggles: [...basicToggles, ...newExtended],
-      },
+      { id: `${type}_existing`, label: `${prefix}, который есть в CRM`, toggles: [...basicToggles, ...existingExtended] },
+      { id: `${type}_new`, label: `${prefix}, которого нет в CRM`, toggles: [...basicToggles, ...newExtended] },
     ],
   };
 };
 
-const createDefaultScenario = (id: string, name: string, count: number, unit: string): Scenario => ({
-  id,
-  name,
-  count,
-  unit,
-  enabled: true,
-  tagsEnabled: false,
-  settings: {
-    incoming: createCallSection('incoming'),
-    outgoing: createCallSection('outgoing'),
-  },
+const createDefaultScenario = (id: string, name: string, count: number, unit: string, isStandard = false): Scenario => ({
+  id, name, count, unit,
+  enabled: true, tagsEnabled: false, isStandard,
+  settings: { incoming: createCallSection('incoming'), outgoing: createCallSection('outgoing') },
 });
 
 export const usePrototypeStore = create<PrototypeState>()(
@@ -136,16 +134,17 @@ export const usePrototypeStore = create<PrototypeState>()(
     (set, get) => ({
       activeCrm: 'amocrm',
       activeMode: 'basic',
+      modeLoading: false,
       selectedScenarioId: { amocrm: 'support', bitrix24: 'scenario1' },
 
       amocrmScenarios: [
         createDefaultScenario('support', 'Все сотрудники Отдела Поддержки', 2, 'пользователей'),
-        createDefaultScenario('standard', 'Стандартный сценарий', 9, 'пользователей'),
+        createDefaultScenario('standard', 'Стандартный сценарий', 9, 'пользователей', true),
       ],
 
       bitrix24Scenarios: [
         createDefaultScenario('scenario1', 'Сценарий 1', 2, 'номеров'),
-        createDefaultScenario('standard', 'Стандартный сценарий', 23, 'номеров'),
+        createDefaultScenario('standard', 'Стандартный сценарий', 23, 'номеров', true),
         createDefaultScenario('sales', 'Сценарий Продажи', 25, 'номеров'),
       ],
 
@@ -162,14 +161,19 @@ export const usePrototypeStore = create<PrototypeState>()(
       ],
 
       setCrm: (crm) => set({ activeCrm: crm }),
-      setMode: (mode) => set({ activeMode: mode }),
+
+      setMode: (mode) => {
+        const current = get().activeMode;
+        if (current === mode) return;
+        set({ modeLoading: true });
+        setTimeout(() => {
+          set({ activeMode: mode, modeLoading: false });
+        }, 2000);
+      },
 
       selectScenario: (crm, id) =>
         set((state) => ({
-          selectedScenarioId: {
-            ...state.selectedScenarioId,
-            [crm]: id,
-          },
+          selectedScenarioId: { ...state.selectedScenarioId, [crm]: id },
         })),
 
       toggleGlobal: (crm, id) =>
@@ -187,17 +191,9 @@ export const usePrototypeStore = create<PrototypeState>()(
             const section = s.settings[sectionType];
             const updatedSubsections = section.subsections.map((sub) => {
               if (sub.id !== subsectionId) return sub;
-              return {
-                ...sub,
-                toggles: sub.toggles.map((t) =>
-                  t.id === toggleId ? { ...t, enabled: !t.enabled } : t
-                ),
-              };
+              return { ...sub, toggles: sub.toggles.map((t) => t.id === toggleId ? { ...t, enabled: !t.enabled } : t) };
             });
-            return {
-              ...s,
-              settings: { ...s.settings, [sectionType]: { ...section, subsections: updatedSubsections } },
-            };
+            return { ...s, settings: { ...s.settings, [sectionType]: { ...section, subsections: updatedSubsections } } };
           });
           return { [scenariosKey]: scenarios };
         }),
@@ -211,10 +207,7 @@ export const usePrototypeStore = create<PrototypeState>()(
         const seen = new Set<string>();
         const addExtended = (toggles: ToggleSetting[]) => {
           toggles.forEach((t) => {
-            if (t.mode === 'extended' && !seen.has(t.id)) {
-              seen.add(t.id);
-              result.push({ label: t.label, enabled: t.enabled });
-            }
+            if (t.mode === 'extended' && !seen.has(t.id)) { seen.add(t.id); result.push({ label: t.label, enabled: t.enabled }); }
           });
         };
         scenario.settings.incoming.subsections.forEach((sub) => addExtended(sub.toggles));
@@ -225,35 +218,41 @@ export const usePrototypeStore = create<PrototypeState>()(
       toggleScenarioEnabled: (crm, id) =>
         set((state) => {
           const scenariosKey = crm === 'amocrm' ? 'amocrmScenarios' : 'bitrix24Scenarios';
-          return {
-            [scenariosKey]: state[scenariosKey].map((s) =>
-              s.id === id ? { ...s, enabled: !s.enabled } : s
-            ),
-          };
+          return { [scenariosKey]: state[scenariosKey].map((s) => s.id === id ? { ...s, enabled: !s.enabled } : s) };
         }),
 
       toggleScenarioTags: (crm, id) =>
         set((state) => {
           const scenariosKey = crm === 'amocrm' ? 'amocrmScenarios' : 'bitrix24Scenarios';
-          return {
-            [scenariosKey]: state[scenariosKey].map((s) =>
-              s.id === id ? { ...s, tagsEnabled: !s.tagsEnabled } : s
-            ),
-          };
+          return { [scenariosKey]: state[scenariosKey].map((s) => s.id === id ? { ...s, tagsEnabled: !s.tagsEnabled } : s) };
         }),
 
       renameScenario: (crm, id, newName) =>
         set((state) => {
           const scenariosKey = crm === 'amocrm' ? 'amocrmScenarios' : 'bitrix24Scenarios';
+          return { [scenariosKey]: state[scenariosKey].map((s) => s.id === id ? { ...s, name: newName } : s) };
+        }),
+
+      duplicateScenario: (crm, id, newName, employeeIds) =>
+        set((state) => {
+          const scenariosKey = crm === 'amocrm' ? 'amocrmScenarios' : 'bitrix24Scenarios';
+          const scenarios = state[scenariosKey];
+          const source = scenarios.find((s) => s.id === id);
+          if (!source) return state;
+          const newId = `${id}_copy_${Date.now()}`;
+          const copy: Scenario = {
+            ...JSON.parse(JSON.stringify(source)),
+            id: newId, name: newName, count: employeeIds.length,
+            enabled: true, tagsEnabled: false, isStandard: false,
+          };
           return {
-            [scenariosKey]: state[scenariosKey].map((s) =>
-              s.id === id ? { ...s, name: newName } : s
-            ),
+            [scenariosKey]: [...scenarios, copy],
+            selectedScenarioId: { ...state.selectedScenarioId, [crm]: newId },
           };
         }),
     }),
     {
-      name: 'crm-prototype-state-v2',
+      name: 'crm-prototype-state-v3',
       partialize: (state) => ({
         activeCrm: state.activeCrm,
         activeMode: state.activeMode,
