@@ -27,7 +27,7 @@ export default function Home() {
         </div>
         {/* Mode indicator bar */}
         <div className="max-w-[1400px] mx-auto px-4">
-          <div className={`h-0.5 ${activeMode === 'pro' ? 'bg-gradient-to-r from-sky-400 via-violet-400 to-amber-400' : 'bg-gradient-to-r from-amber-300 to-amber-400'}`} />
+          <div className={`h-0.5 ${activeMode === 'extended' ? 'bg-gradient-to-r from-sky-400 via-violet-400 to-amber-400' : 'bg-gradient-to-r from-amber-300 to-amber-400'}`} />
         </div>
       </header>
 

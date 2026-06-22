@@ -1,9 +1,10 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { CircleHelp, ChevronDown } from 'lucide-react';
-import type { ToggleSetting, FunnelSetting } from '@/store/prototype-store';
+import { CircleHelp, ChevronDown, Lock, ChevronRight } from 'lucide-react';
+import type { ToggleSetting } from '@/store/prototype-store';
 import { usePrototypeStore, type CrmType } from '@/store/prototype-store';
+import { useState } from 'react';
 
 interface CrmToggleProps {
   setting: ToggleSetting;
@@ -45,98 +46,78 @@ export function CrmToggle({ setting, disabled, onToggle }: CrmToggleProps) {
   );
 }
 
-interface FunnelRowProps {
-  funnel: FunnelSetting;
-  onFunnelChange: (field: 'funnel' | 'status', value: string) => void;
-  disabled?: boolean;
-}
-
-export function FunnelRow({ funnel, onFunnelChange, disabled }: FunnelRowProps) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[12px] text-gray-600">{funnel.label}</span>
-      <div className="flex items-center gap-2">
-        <select
-          value={funnel.funnel}
-          onChange={(e) => onFunnelChange('funnel', e.target.value)}
-          disabled={disabled}
-          className={cn(
-            'flex-1 h-8 text-[12px] border border-gray-200 rounded px-2 bg-white text-gray-700 cursor-pointer',
-            disabled && 'opacity-60 cursor-not-allowed'
-          )}
-        >
-          <option value="">Выберите воронку</option>
-          <option value="Основная воронка">Основная воронка</option>
-          <option value="Воронка продаж">Воронка продаж</option>
-          <option value="Воронка поддержки">Воронка поддержки</option>
-        </select>
-        <select
-          value={funnel.status}
-          onChange={(e) => onFunnelChange('status', e.target.value)}
-          disabled={disabled}
-          className={cn(
-            'flex-1 h-8 text-[12px] border border-gray-200 rounded px-2 bg-white text-gray-700 cursor-pointer',
-            disabled && 'opacity-60 cursor-not-allowed'
-          )}
-        >
-          <option value="">Статус</option>
-          <option value="Новый контакт">Новый контакт</option>
-          <option value="Принятый">Принятый</option>
-          <option value="Пропущенный">Пропущенный</option>
-          <option value="В работе">В работе</option>
-        </select>
-      </div>
-    </div>
-  );
-}
-
-interface LockedProSectionProps {
+interface LockedExtendedBlockProps {
   crm: CrmType;
   scenarioId: string;
-  title: string;
 }
 
-export function LockedProSection({ crm, scenarioId, title }: LockedProSectionProps) {
-  const { activeMode, setMode, getProConfiguredCount } = usePrototypeStore();
-  if (activeMode !== 'minimal') return null;
+export function LockedExtendedBlock({ crm, scenarioId }: LockedExtendedBlockProps) {
+  const { activeMode, setMode, getExtendedConfiguredToggles } = usePrototypeStore();
+  const [expanded, setExpanded] = useState(false);
 
-  const proCount = getProConfiguredCount(crm, scenarioId);
-  const globalProEnabled = crm === 'amocrm'
-    ? usePrototypeStore.getState().amocrmGlobal.filter((g) => g.mode === 'pro' && g.enabled).length
-    : usePrototypeStore.getState().bitrix24Global.filter((g) => g.mode === 'pro' && g.enabled).length;
-  const totalPro = proCount + globalProEnabled;
+  if (activeMode !== 'basic') return null;
+
+  const extendedToggles = getExtendedConfiguredToggles(crm, scenarioId);
+  const globalExtended = crm === 'amocrm'
+    ? usePrototypeStore.getState().amocrmGlobal.filter((g) => g.mode === 'extended')
+    : usePrototypeStore.getState().bitrix24Global.filter((g) => g.mode === 'extended');
+  const globalEnabledCount = globalExtended.filter((g) => g.enabled).length;
+
+  const enabledItems = extendedToggles.filter((t) => t.enabled);
+  const totalEnabled = enabledItems.length + globalEnabledCount;
+
+  if (totalEnabled === 0) return null;
 
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mt-2">
-      <div className="flex items-center justify-between">
+    <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+      {/* Header — always compact */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-100/60 transition-colors"
+      >
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-gray-200 flex items-center justify-center">
-            <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <span className="text-[13px] font-medium text-gray-600">{title}</span>
-          {totalPro > 0 && (
-            <span className="bg-amber-100 text-amber-700 text-[11px] font-medium px-2 py-0.5 rounded-full">
-              {totalPro} настроено в Профи
-            </span>
-          )}
+          <Lock className="w-3.5 h-3.5 text-gray-400" />
+          <span className="text-[12px] font-medium text-gray-600">
+            Расширенные настройки
+          </span>
+          <span className="bg-amber-100 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
+            {totalEnabled}
+          </span>
         </div>
-        <button
-          onClick={() => setMode('pro')}
-          className="text-[12px] text-blue-500 hover:text-blue-600 font-medium cursor-pointer"
-        >
-          Перейти к редактированию →
-        </button>
-      </div>
-      {totalPro > 0 && (
-        <p className="text-[11px] text-gray-400 mt-1 ml-7">
-          Эти настройки недоступны в режиме «Минимальный». Переключитесь в «Профи» для редактирования.
-        </p>
+        <div className="flex items-center gap-2">
+          <span
+            onClick={(e) => { e.stopPropagation(); setMode('extended'); }}
+            className="text-[11px] text-blue-500 hover:text-blue-600 font-medium cursor-pointer"
+          >
+            Открыть →
+          </span>
+          <ChevronRight className={cn(
+            'w-3.5 h-3.5 text-gray-400 transition-transform',
+            expanded && 'rotate-90'
+          )} />
+        </div>
+      </button>
+
+      {/* Expanded list — compact */}
+      {expanded && (
+        <div className="px-3 pb-2 border-t border-gray-200/60">
+          <div className="pt-1.5 space-y-0.5">
+            {enabledItems.map((item) => (
+              <div key={item.label} className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                <span className="text-[11px] text-gray-500 truncate">{item.label}</span>
+              </div>
+            ))}
+            {globalEnabledCount > 0 && globalExtended.map((g) => (
+              g.enabled && (
+                <div key={g.id} className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  <span className="text-[11px] text-gray-500 truncate">{g.label}</span>
+                </div>
+              )
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

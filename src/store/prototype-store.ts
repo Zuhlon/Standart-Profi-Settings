@@ -2,23 +2,15 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type CrmType = 'amocrm' | 'bitrix24';
-export type ModeType = 'minimal' | 'pro';
+export type ModeType = 'basic' | 'extended';
 
 export interface ToggleSetting {
   id: string;
   label: string;
   hasInfo?: boolean;
   hasConfigure?: boolean;
-  mode: 'minimal' | 'pro';
+  mode: 'basic' | 'extended';
   enabled: boolean;
-}
-
-export interface FunnelSetting {
-  id: string;
-  label: string;
-  funnel: string;
-  status: string;
-  mode: 'pro';
 }
 
 export interface CallSection {
@@ -28,7 +20,6 @@ export interface CallSection {
     id: string;
     label: string;
     toggles: ToggleSetting[];
-    funnels?: FunnelSetting[];
   }[];
 }
 
@@ -58,40 +49,54 @@ interface PrototypeState {
   selectScenario: (crm: CrmType, id: string) => void;
   toggleGlobal: (crm: CrmType, id: string) => void;
   toggleSetting: (crm: CrmType, scenarioId: string, sectionType: 'incoming' | 'outgoing', subsectionId: string, toggleId: string) => void;
-  setFunnel: (crm: CrmType, scenarioId: string, sectionType: 'incoming' | 'outgoing', subsectionId: string, funnelId: string, field: 'funnel' | 'status', value: string) => void;
-  getProConfiguredCount: (crm: CrmType, scenarioId: string) => number;
+  getExtendedConfiguredToggles: (crm: CrmType, scenarioId: string) => { label: string; enabled: boolean }[];
   toggleScenarioEnabled: (crm: CrmType, id: string) => void;
 }
 
-const createDefaultToggles = (isBitrix: boolean): ToggleSetting[] => [
-  { id: 'create_contact', label: 'Создать контакт', mode: 'minimal', enabled: true, hasInfo: true, hasConfigure: true },
-  { id: 'create_company', label: isBitrix ? 'Создать лид' : 'Создать компанию', mode: 'pro', enabled: true, hasInfo: true, hasConfigure: true },
-  { id: 'create_deal', label: 'Создать сделку', mode: 'minimal', enabled: true, hasInfo: true, hasConfigure: true },
-  { id: 'create_task_answered', label: 'Создать задачу на ответственный звонок', mode: 'pro', enabled: true, hasInfo: true, hasConfigure: true },
-  { id: 'create_task_missed', label: 'Создать задачу на пропущенный звонок', mode: 'minimal', enabled: true, hasInfo: true, hasConfigure: true },
-  { id: 'transfer_recordings', label: 'Передавать записи звонков', mode: 'minimal', enabled: true, hasInfo: true, hasConfigure: true },
-  { id: 'transfer_between_employees', label: 'Передавать записи между сотрудниками', mode: 'pro', enabled: true, hasInfo: true, hasConfigure: true },
+// --- Toggle factories per PDF distribution ---
+
+// Basic toggles (same for all subsections)
+const basicToggles: ToggleSetting[] = [
+  { id: 'create_deal', label: 'Создать сделку / лид', mode: 'basic', enabled: true, hasInfo: true, hasConfigure: true },
+  { id: 'create_task_answered', label: 'Создать задачу на отвеченный звонок', mode: 'basic', enabled: true, hasInfo: true, hasConfigure: true },
+  { id: 'create_task_missed', label: 'Создать задачу на пропущенный звонок', mode: 'basic', enabled: true, hasInfo: true, hasConfigure: true },
+  { id: 'transfer_recordings', label: 'Передавать записи звонков', mode: 'basic', enabled: true, hasInfo: true, hasConfigure: true },
 ];
 
-const createFunnelSettings = (hasValues: boolean): FunnelSetting[] => [
-  {
-    id: 'accepted_funnel',
-    label: 'Поместить в воронку Принятый звонок',
-    funnel: hasValues ? 'Основная воронка' : '',
-    status: hasValues ? 'Новый контакт' : '',
-    mode: 'pro',
-  },
-  {
-    id: 'missed_funnel',
-    label: 'Поместить в воронку Пропущенный звонок',
-    funnel: hasValues ? 'Основная воронка' : '',
-    status: hasValues ? 'Пропущенный' : '',
-    mode: 'pro',
-  },
+// Extended toggles: incoming_existing (full set)
+const extendedTogglesIncomingExisting: ToggleSetting[] = [
+  { id: 'transfer_between_employees', label: 'Передавать звонки между сотрудниками', mode: 'extended', enabled: true, hasInfo: true, hasConfigure: true },
+  { id: 'force_create_lead', label: 'Принудительно создавать лид для всех звонков', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
+  { id: 'speech_analytics', label: 'Передавать данные речевой аналитики', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
+  { id: 'assign_responsible', label: 'Назначить ответственным за звонок сотрудника, завершившего звонок', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
+  { id: 'utm_tag', label: 'Выбрать utm-метку (тег)', mode: 'extended', enabled: false, hasInfo: false, hasConfigure: true },
 ];
 
-const createCallSection = (type: 'incoming' | 'outgoing', isBitrix: boolean): CallSection => {
+// Extended toggles: incoming_new (no "force_create_lead")
+const extendedTogglesIncomingNew: ToggleSetting[] = [
+  { id: 'transfer_between_employees', label: 'Передавать звонки между сотрудниками', mode: 'extended', enabled: true, hasInfo: true, hasConfigure: true },
+  { id: 'speech_analytics', label: 'Передавать данные речевой аналитики', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
+  { id: 'assign_responsible', label: 'Назначить ответственным за звонок сотрудника, завершившего звонок', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
+  { id: 'utm_tag', label: 'Выбрать utm-метку (тег)', mode: 'extended', enabled: false, hasInfo: false, hasConfigure: true },
+];
+
+// Extended toggles: outgoing_existing (no UTM, no Назначить)
+const extendedTogglesOutgoingExisting: ToggleSetting[] = [
+  { id: 'transfer_between_employees', label: 'Передавать звонки между сотрудниками', mode: 'extended', enabled: true, hasInfo: true, hasConfigure: true },
+  { id: 'force_create_lead', label: 'Принудительно создавать лид для всех звонков', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
+  { id: 'speech_analytics', label: 'Передавать данные речевой аналитики', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
+];
+
+// Extended toggles: outgoing_new (minimal)
+const extendedTogglesOutgoingNew: ToggleSetting[] = [
+  { id: 'transfer_between_employees', label: 'Передавать звонки между сотрудниками', mode: 'extended', enabled: true, hasInfo: true, hasConfigure: true },
+  { id: 'speech_analytics', label: 'Передавать данные речевой аналитики', mode: 'extended', enabled: false, hasInfo: true, hasConfigure: true },
+];
+
+const createCallSection = (type: 'incoming' | 'outgoing'): CallSection => {
   const prefix = type === 'incoming' ? 'С номера' : 'На номер';
+  const existingExtended = type === 'incoming' ? extendedTogglesIncomingExisting : extendedTogglesOutgoingExisting;
+  const newExtended = type === 'incoming' ? extendedTogglesIncomingNew : extendedTogglesOutgoingNew;
   return {
     id: type,
     label: type === 'incoming' ? 'Входящие звонки' : 'Исходящие звонки',
@@ -99,28 +104,26 @@ const createCallSection = (type: 'incoming' | 'outgoing', isBitrix: boolean): Ca
       {
         id: `${type}_existing`,
         label: `${prefix}, который есть в CRM`,
-        toggles: createDefaultToggles(isBitrix),
-        funnels: createFunnelSettings(true),
+        toggles: [...basicToggles, ...existingExtended],
       },
       {
         id: `${type}_new`,
         label: `${prefix}, которого нет в CRM`,
-        toggles: createDefaultToggles(isBitrix),
-        funnels: createFunnelSettings(false),
+        toggles: [...basicToggles, ...newExtended],
       },
     ],
   };
 };
 
-const createDefaultScenario = (id: string, name: string, count: number, unit: string, isBitrix: boolean): Scenario => ({
+const createDefaultScenario = (id: string, name: string, count: number, unit: string): Scenario => ({
   id,
   name,
   count,
   unit,
   enabled: true,
   settings: {
-    incoming: createCallSection('incoming', isBitrix),
-    outgoing: createCallSection('outgoing', isBitrix),
+    incoming: createCallSection('incoming'),
+    outgoing: createCallSection('outgoing'),
   },
 });
 
@@ -128,30 +131,30 @@ export const usePrototypeStore = create<PrototypeState>()(
   persist(
     (set, get) => ({
       activeCrm: 'amocrm',
-      activeMode: 'minimal',
+      activeMode: 'basic',
       selectedScenarioId: { amocrm: 'support', bitrix24: 'scenario1' },
 
       amocrmScenarios: [
-        createDefaultScenario('support', 'Все сотрудники Отдела Поддержки', 2, 'пользователей', false),
-        createDefaultScenario('standard', 'Стандартный сценарий', 9, 'пользователей', false),
+        createDefaultScenario('support', 'Все сотрудники Отдела Поддержки', 2, 'пользователей'),
+        createDefaultScenario('standard', 'Стандартный сценарий', 9, 'пользователей'),
       ],
 
       bitrix24Scenarios: [
-        createDefaultScenario('scenario1', 'Сценарий 1', 2, 'номеров', true),
-        createDefaultScenario('standard', 'Стандартный сценарий', 23, 'номеров', true),
-        createDefaultScenario('sales', 'Сценарий Продажи', 25, 'номеров', true),
+        createDefaultScenario('scenario1', 'Сценарий 1', 2, 'номеров'),
+        createDefaultScenario('standard', 'Стандартный сценарий', 23, 'номеров'),
+        createDefaultScenario('sales', 'Сценарий Продажи', 25, 'номеров'),
       ],
 
       amocrmGlobal: [
-        { id: 'forward_manager', label: 'Переводить звонок на ответственного менеджера в CRM', mode: 'minimal', enabled: true, hasInfo: true },
-        { id: 'create_undispatched', label: 'Создать сделку в Неразобранное', mode: 'minimal', enabled: false, hasInfo: true },
-        { id: 'exceptions', label: 'Номера-исключения', mode: 'pro', enabled: false, hasInfo: true },
+        { id: 'forward_manager', label: 'Переводить звонок на ответственного менеджера в CRM', mode: 'basic', enabled: true, hasInfo: true },
+        { id: 'create_undispatched', label: 'Создать сделку в Неразобранное', mode: 'basic', enabled: false, hasInfo: true },
+        { id: 'exceptions', label: 'Номера-исключения', mode: 'extended', enabled: false, hasInfo: true },
       ],
 
       bitrix24Global: [
-        { id: 'forward_manager', label: 'Переводить звонок на ответственного менеджера в CRM', mode: 'minimal', enabled: false, hasInfo: true },
-        { id: 'create_contact_deal', label: 'Создать контакт / сделку / лид в начале звонка', mode: 'minimal', enabled: true, hasInfo: true },
-        { id: 'exceptions', label: 'Номера-исключения', mode: 'pro', enabled: false, hasInfo: true },
+        { id: 'forward_manager', label: 'Переводить звонок на ответственного менеджера в CRM', mode: 'basic', enabled: false, hasInfo: true },
+        { id: 'create_contact_deal', label: 'Создать контакт / сделку / лид в начале звонка', mode: 'basic', enabled: true, hasInfo: true },
+        { id: 'exceptions', label: 'Номера-исключения', mode: 'extended', enabled: false, hasInfo: true },
       ],
 
       setCrm: (crm) => set({ activeCrm: crm }),
@@ -195,43 +198,24 @@ export const usePrototypeStore = create<PrototypeState>()(
           return { [scenariosKey]: scenarios };
         }),
 
-      setFunnel: (crm, scenarioId, sectionType, subsectionId, funnelId, field, value) =>
-        set((state) => {
-          const scenariosKey = crm === 'amocrm' ? 'amocrmScenarios' : 'bitrix24Scenarios';
-          const scenarios = state[scenariosKey].map((s) => {
-            if (s.id !== scenarioId) return s;
-            const section = s.settings[sectionType];
-            const updatedSubsections = section.subsections.map((sub) => {
-              if (sub.id !== subsectionId) return sub;
-              return {
-                ...sub,
-                funnels: sub.funnels?.map((f) =>
-                  f.id === funnelId ? { ...f, [field]: value } : f
-                ),
-              };
-            });
-            return {
-              ...s,
-              settings: { ...s.settings, [sectionType]: { ...section, subsections: updatedSubsections } },
-            };
-          });
-          return { [scenariosKey]: scenarios };
-        }),
-
-      getProConfiguredCount: (crm, scenarioId) => {
+      getExtendedConfiguredToggles: (crm, scenarioId) => {
         const state = get();
         const scenarios = crm === 'amocrm' ? state.amocrmScenarios : state.bitrix24Scenarios;
         const scenario = scenarios.find((s) => s.id === scenarioId);
-        if (!scenario) return 0;
-        let count = 0;
-        const countEnabled = (toggles: ToggleSetting[]) => {
+        if (!scenario) return [];
+        const result: { label: string; enabled: boolean }[] = [];
+        const seen = new Set<string>();
+        const addExtended = (toggles: ToggleSetting[]) => {
           toggles.forEach((t) => {
-            if (t.mode === 'pro' && t.enabled) count++;
+            if (t.mode === 'extended' && !seen.has(t.id)) {
+              seen.add(t.id);
+              result.push({ label: t.label, enabled: t.enabled });
+            }
           });
         };
-        scenario.settings.incoming.subsections.forEach((sub) => countEnabled(sub.toggles));
-        scenario.settings.outgoing.subsections.forEach((sub) => countEnabled(sub.toggles));
-        return count;
+        scenario.settings.incoming.subsections.forEach((sub) => addExtended(sub.toggles));
+        scenario.settings.outgoing.subsections.forEach((sub) => addExtended(sub.toggles));
+        return result;
       },
 
       toggleScenarioEnabled: (crm, id) =>
@@ -245,7 +229,7 @@ export const usePrototypeStore = create<PrototypeState>()(
         }),
     }),
     {
-      name: 'crm-prototype-state',
+      name: 'crm-prototype-state-v2',
       partialize: (state) => ({
         activeCrm: state.activeCrm,
         activeMode: state.activeMode,

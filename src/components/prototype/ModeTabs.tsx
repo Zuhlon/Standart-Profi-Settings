@@ -7,18 +7,16 @@ import { Sparkles, Cpu } from 'lucide-react';
 export function ModeTabs() {
   const { activeMode, setMode } = usePrototypeStore();
 
-  const modes: { value: ModeType; label: string; icon: React.ReactNode; desc: string }[] = [
+  const modes: { value: ModeType; label: string; icon: React.ReactNode }[] = [
     {
-      value: 'minimal',
-      label: 'Минимальный',
+      value: 'basic',
+      label: 'Базовые',
       icon: <Sparkles className="w-4 h-4" />,
-      desc: 'Основные настройки обработки звонков',
     },
     {
-      value: 'pro',
-      label: 'Профи',
+      value: 'extended',
+      label: 'Расширенные',
       icon: <Cpu className="w-4 h-4" />,
-      desc: 'Полный набор настроек',
     },
   ];
 

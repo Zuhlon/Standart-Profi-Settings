@@ -1,7 +1,7 @@
 'use client';
 
 import { usePrototypeStore, type Scenario, type CrmType } from '@/store/prototype-store';
-import { CrmToggle, FunnelRow, LockedProSection } from './CrmToggle';
+import { CrmToggle, LockedExtendedBlock } from './CrmToggle';
 import { cn } from '@/lib/utils';
 import {
   CircleHelp,
@@ -11,10 +11,8 @@ import {
   Search,
   Pencil,
   Trash2,
-  ChevronDown,
   FolderOpen,
   Phone,
-  Hash,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -144,60 +142,24 @@ function CallSubsection({
   scenarioId: string;
   sectionType: 'incoming' | 'outgoing';
 }) {
-  const { activeMode, toggleSetting, setFunnel } = usePrototypeStore();
-  const minimalToggles = subsection.toggles.filter((t) => t.mode === 'minimal');
-  const proToggles = subsection.toggles.filter((t) => t.mode === 'pro');
-  const hasFunnelSettings = subsection.funnels && subsection.funnels.length > 0;
-  const hasProSettings = proToggles.length > 0 || hasFunnelSettings;
+  const { activeMode, toggleSetting } = usePrototypeStore();
+  const visibleToggles = subsection.toggles.filter(
+    (t) => activeMode === 'extended' || t.mode === 'basic'
+  );
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <h4 className="text-[13px] font-medium text-gray-700">{subsection.label}</h4>
-
-      {/* Minimal toggles */}
       <div className="space-y-0.5">
-        {minimalToggles.map((toggle) => (
+        {visibleToggles.map((toggle) => (
           <CrmToggle
             key={toggle.id}
             setting={toggle}
-            disabled={false}
+            disabled={toggle.mode === 'extended' && activeMode === 'basic'}
             onToggle={() => toggleSetting(crm, scenarioId, sectionType, subsection.id, toggle.id)}
           />
         ))}
       </div>
-
-      {/* Pro toggles and funnels */}
-      {activeMode === 'pro' && (
-        <>
-          <div className="space-y-0.5 mt-1">
-            {proToggles.map((toggle) => (
-              <CrmToggle
-                key={toggle.id}
-                setting={toggle}
-                disabled={false}
-                onToggle={() => toggleSetting(crm, scenarioId, sectionType, subsection.id, toggle.id)}
-              />
-            ))}
-          </div>
-          {hasFunnelSettings && subsection.funnels && (
-            <div className="mt-2 space-y-2 pl-1">
-              <div className="flex items-center gap-1.5">
-                <CircleHelp className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-[12px] font-medium text-gray-600">Работа с воронками</span>
-              </div>
-              {subsection.funnels.map((funnel) => (
-                <FunnelRow
-                  key={funnel.id}
-                  funnel={funnel}
-                  onFunnelChange={(field, value) =>
-                    setFunnel(crm, scenarioId, sectionType, subsection.id, funnel.id, field, value)
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 }
@@ -215,13 +177,6 @@ function CallSectionPanel({
   sectionType: 'incoming' | 'outgoing';
   helpText: string;
 }) {
-  const { activeMode } = usePrototypeStore();
-  const hasProToggles = section.subsections.some((sub) =>
-    sub.toggles.some((t) => t.mode === 'pro')
-  );
-  const hasFunnels = section.subsections.some((sub) => sub.funnels && sub.funnels.length > 0);
-  const showLocked = activeMode === 'minimal' && (hasProToggles || hasFunnels);
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -232,23 +187,17 @@ function CallSectionPanel({
         </button>
       </div>
 
-      {section.subsections.map((subsection) => (
-        <CallSubsection
-          key={subsection.id}
-          subsection={subsection}
-          crm={crm}
-          scenarioId={scenarioId}
-          sectionType={sectionType}
-        />
-      ))}
-
-      {showLocked && (
-        <LockedProSection
-          crm={crm}
-          scenarioId={scenarioId}
-          title="Расширенные настройки сценария"
-        />
-      )}
+      <div className="space-y-4">
+        {section.subsections.map((subsection) => (
+          <CallSubsection
+            key={subsection.id}
+            subsection={subsection}
+            crm={crm}
+            scenarioId={scenarioId}
+            sectionType={sectionType}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -267,8 +216,9 @@ export function Bitrix24Prototype() {
     (s) => s.id === selectedScenarioId.bitrix24
   );
 
-  const minimalGlobal = bitrix24Global.filter((g) => g.mode === 'minimal');
-  const proGlobal = bitrix24Global.filter((g) => g.mode === 'pro');
+  const visibleGlobal = bitrix24Global.filter(
+    (g) => activeMode === 'extended' || g.mode === 'basic'
+  );
 
   if (!selectedScenario) return null;
 
@@ -323,34 +273,15 @@ export function Bitrix24Prototype() {
                 </button>
               </div>
               <div className="space-y-0.5">
-                {minimalGlobal.map((setting) => (
+                {visibleGlobal.map((setting) => (
                   <CrmToggle
                     key={setting.id}
                     setting={setting}
-                    disabled={false}
+                    disabled={setting.mode === 'extended' && activeMode === 'basic'}
                     onToggle={() => toggleGlobal('bitrix24', setting.id)}
                   />
                 ))}
               </div>
-              {activeMode === 'minimal' && proGlobal.length > 0 && (
-                <LockedProSection
-                  crm="bitrix24"
-                  scenarioId={selectedScenario.id}
-                  title="Дополнительные глобальные настройки"
-                />
-              )}
-              {activeMode === 'pro' && (
-                <div className="space-y-0.5 mt-1">
-                  {proGlobal.map((setting) => (
-                    <CrmToggle
-                      key={setting.id}
-                      setting={setting}
-                      disabled={false}
-                      onToggle={() => toggleGlobal('bitrix24', setting.id)}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Scenario selector */}
@@ -367,28 +298,6 @@ export function Bitrix24Prototype() {
                 </div>
               </div>
             </div>
-
-            {/* UTM tags - Pro only */}
-            {activeMode === 'pro' && (
-              <div>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Hash className="w-3.5 h-3.5 text-gray-500" />
-                  <span className="text-[13px] font-semibold text-gray-800">UTM-метки</span>
-                </div>
-                <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-                  <Hash className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-[12px] text-gray-500">Выбрать utm-метку (тег)</span>
-                  <ChevronDown className="w-3 h-3 text-gray-400 ml-auto" />
-                </div>
-              </div>
-            )}
-            {activeMode === 'minimal' && (
-              <LockedProSection
-                crm="bitrix24"
-                scenarioId={selectedScenario.id}
-                title="UTM-метки и расширенные настройки"
-              />
-            )}
 
             {/* Incoming calls */}
             <div className="border-t border-gray-100 pt-4">
@@ -410,6 +319,11 @@ export function Bitrix24Prototype() {
                 sectionType="outgoing"
                 helpText="Как настроить исходящие"
               />
+            </div>
+
+            {/* Single unified locked block for Basic mode */}
+            <div className="border-t border-gray-100 pt-4">
+              <LockedExtendedBlock crm="bitrix24" scenarioId={selectedScenario.id} />
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { usePrototypeStore, type Scenario, type CrmType } from '@/store/prototype-store';
-import { CrmToggle, FunnelRow, LockedProSection } from './CrmToggle';
+import { CrmToggle, LockedExtendedBlock } from './CrmToggle';
 import { cn } from '@/lib/utils';
 import {
   CircleHelp,
@@ -11,7 +11,6 @@ import {
   Search,
   Pencil,
   Trash2,
-  ChevronDown,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -88,7 +87,7 @@ function ScenarioSidebar({ scenarios, selectedId, onSelect, crm }: {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <Pencil className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-pointer" />
                   <Trash2 className="w-3.5 h-3.5 text-gray-400 hover:text-red-500 cursor-pointer" />
                 </div>
@@ -111,60 +110,24 @@ function CallSubsection({
   scenarioId: string;
   sectionType: 'incoming' | 'outgoing';
 }) {
-  const { activeMode, toggleSetting, setFunnel } = usePrototypeStore();
-  const minimalToggles = subsection.toggles.filter((t) => t.mode === 'minimal');
-  const proToggles = subsection.toggles.filter((t) => t.mode === 'pro');
-  const hasFunnelSettings = subsection.funnels && subsection.funnels.length > 0;
-  const hasProSettings = proToggles.length > 0 || hasFunnelSettings;
+  const { activeMode, toggleSetting } = usePrototypeStore();
+  const visibleToggles = subsection.toggles.filter(
+    (t) => activeMode === 'extended' || t.mode === 'basic'
+  );
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <h4 className="text-[13px] font-medium text-gray-700">{subsection.label}</h4>
-
-      {/* Minimal toggles - always shown */}
       <div className="space-y-0.5">
-        {minimalToggles.map((toggle) => (
+        {visibleToggles.map((toggle) => (
           <CrmToggle
             key={toggle.id}
             setting={toggle}
-            disabled={false}
+            disabled={toggle.mode === 'extended' && activeMode === 'basic'}
             onToggle={() => toggleSetting(crm, scenarioId, sectionType, subsection.id, toggle.id)}
           />
         ))}
       </div>
-
-      {/* Pro toggles and funnels - collapsed in minimal mode */}
-      {activeMode === 'pro' ? (
-        <>
-          <div className="space-y-0.5 mt-1">
-            {proToggles.map((toggle) => (
-              <CrmToggle
-                key={toggle.id}
-                setting={toggle}
-                disabled={false}
-                onToggle={() => toggleSetting(crm, scenarioId, sectionType, subsection.id, toggle.id)}
-              />
-            ))}
-          </div>
-          {hasFunnelSettings && subsection.funnels && (
-            <div className="mt-2 space-y-2 pl-1">
-              <div className="flex items-center gap-1.5">
-                <CircleHelp className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-[12px] font-medium text-gray-600">Работа с воронками</span>
-              </div>
-              {subsection.funnels.map((funnel) => (
-                <FunnelRow
-                  key={funnel.id}
-                  funnel={funnel}
-                  onFunnelChange={(field, value) =>
-                    setFunnel(crm, scenarioId, sectionType, subsection.id, funnel.id, field, value)
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </>
-      ) : hasProSettings ? null : null}
     </div>
   );
 }
@@ -182,13 +145,6 @@ function CallSectionPanel({
   sectionType: 'incoming' | 'outgoing';
   helpText: string;
 }) {
-  const { activeMode } = usePrototypeStore();
-  const hasProToggles = section.subsections.some((sub) =>
-    sub.toggles.some((t) => t.mode === 'pro')
-  );
-  const hasFunnels = section.subsections.some((sub) => sub.funnels && sub.funnels.length > 0);
-  const showLocked = activeMode === 'minimal' && (hasProToggles || hasFunnels);
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -199,23 +155,17 @@ function CallSectionPanel({
         </button>
       </div>
 
-      {section.subsections.map((subsection) => (
-        <CallSubsection
-          key={subsection.id}
-          subsection={subsection}
-          crm={crm}
-          scenarioId={scenarioId}
-          sectionType={sectionType}
-        />
-      ))}
-
-      {showLocked && (
-        <LockedProSection
-          crm={crm}
-          scenarioId={scenarioId}
-          title="Расширенные настройки сценария"
-        />
-      )}
+      <div className="space-y-4">
+        {section.subsections.map((subsection) => (
+          <CallSubsection
+            key={subsection.id}
+            subsection={subsection}
+            crm={crm}
+            scenarioId={scenarioId}
+            sectionType={sectionType}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -234,8 +184,9 @@ export function AmoCRMPrototype() {
     (s) => s.id === selectedScenarioId.amocrm
   );
 
-  const minimalGlobal = amocrmGlobal.filter((g) => g.mode === 'minimal');
-  const proGlobal = amocrmGlobal.filter((g) => g.mode === 'pro');
+  const visibleGlobal = amocrmGlobal.filter(
+    (g) => activeMode === 'extended' || g.mode === 'basic'
+  );
 
   if (!selectedScenario) return null;
 
@@ -279,76 +230,29 @@ export function AmoCRMPrototype() {
                 </button>
               </div>
               <div className="space-y-0.5">
-                {minimalGlobal.map((setting) => (
+                {visibleGlobal.map((setting) => (
                   <CrmToggle
                     key={setting.id}
                     setting={setting}
-                    disabled={false}
+                    disabled={setting.mode === 'extended' && activeMode === 'basic'}
                     onToggle={() => toggleGlobal('amocrm', setting.id)}
                   />
                 ))}
               </div>
-              {activeMode === 'minimal' && proGlobal.length > 0 && (
-                <LockedProSection
-                  crm="amocrm"
-                  scenarioId={selectedScenario.id}
-                  title="Дополнительные глобальные настройки"
-                />
-              )}
-              {activeMode === 'pro' && (
-                <div className="space-y-0.5 mt-1">
-                  {proGlobal.map((setting) => (
-                    <CrmToggle
-                      key={setting.id}
-                      setting={setting}
-                      disabled={false}
-                      onToggle={() => toggleGlobal('amocrm', setting.id)}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Scenario selector */}
             <div className="border border-gray-200 rounded-lg p-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] text-gray-500">
-                    Сценарии обработки для {selectedScenario.count} {selectedScenario.unit}
-                  </span>
-                </div>
+                <span className="text-[13px] text-gray-500">
+                  Сценарии обработки для {selectedScenario.count} {selectedScenario.unit}
+                </span>
                 <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200">
                   <span className="text-[13px] font-medium text-gray-800">{selectedScenario.name}</span>
                   <Pencil className="w-3.5 h-3.5 text-gray-400" />
                 </div>
               </div>
             </div>
-
-            {/* Scenario settings: Tags */}
-            {activeMode === 'pro' && (
-              <div>
-                <h3 className="text-[13px] font-semibold text-gray-800 mb-2">Настройки сценария</h3>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="relative inline-flex h-5 w-9 cursor-pointer rounded-full bg-gray-300 border-2 border-transparent">
-                      <span className="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform translate-x-0" />
-                    </div>
-                    <span className="text-[13px] text-gray-800">Теги</span>
-                    <CircleHelp className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                  <button className="text-[12px] text-blue-500 hover:text-blue-600 font-medium flex items-center gap-0.5 cursor-pointer">
-                    Настроить <ChevronDown className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            )}
-            {activeMode === 'minimal' && (
-              <LockedProSection
-                crm="amocrm"
-                scenarioId={selectedScenario.id}
-                title="Теги и расширенные настройки сценария"
-              />
-            )}
 
             {/* Incoming calls */}
             <div className="border-t border-gray-100 pt-4">
@@ -370,6 +274,11 @@ export function AmoCRMPrototype() {
                 sectionType="outgoing"
                 helpText="Как настроить исходящие"
               />
+            </div>
+
+            {/* Single unified locked block for Basic mode */}
+            <div className="border-t border-gray-100 pt-4">
+              <LockedExtendedBlock crm="amocrm" scenarioId={selectedScenario.id} />
             </div>
           </div>
         </div>
