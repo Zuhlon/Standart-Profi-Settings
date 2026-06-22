@@ -257,6 +257,9 @@ export function AmoCRMPrototype() {
         {/* Main content */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-[720px] mx-auto p-5 space-y-5">
+            {/* Extended settings info block — top */}
+            <LockedExtendedBlock crm="amocrm" scenarioId={selectedScenario.id} />
+
             {/* Global settings */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -320,10 +323,7 @@ export function AmoCRMPrototype() {
               />
             </div>
 
-            {/* Single unified locked block for Basic mode */}
-            <div className="border-t border-gray-100 pt-4">
-              <LockedExtendedBlock crm="amocrm" scenarioId={selectedScenario.id} />
-            </div>
+
           </div>
         </div>
       </div>
