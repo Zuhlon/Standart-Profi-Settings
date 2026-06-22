@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { usePrototypeStore, type CrmType, type Scenario, MOCK_EMPLOYEES } from '@/store/prototype-store';
 import { cn } from '@/lib/utils';
-import { Copy, Trash2, X, Check, User } from 'lucide-react';
+import { Copy, Trash2, X, Check, User, Loader2 } from 'lucide-react';
 
 /* ─── Duplicate Modal ─── */
 
@@ -118,36 +118,54 @@ export function DuplicateModal({ open, onClose, crm, sourceScenario }: {
   );
 }
 
+/* ─── Duplicate Loading Modal ─── */
+
+export function DuplicateLoadingModal({ scenarioName }: { scenarioName: string }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/20" />
+      <div className="relative bg-white rounded-xl shadow-xl w-[320px] py-8 flex flex-col items-center gap-3">
+        <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
+        <p className="text-[13px] text-gray-600 text-center">
+          Загрузка настроек сценария<br />
+          <span className="font-medium text-gray-800">«{scenarioName}»</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Shared Scenario Card ─── */
 
-export function ScenarioCard({ scenario, selected, onSelect, crm, onDuplicate, disabled }: {
+export function ScenarioCard({ scenario, selected, onSelect, crm, onDuplicate, disabled, duplicateLoading }: {
   scenario: Scenario;
   selected: boolean;
   onSelect: () => void;
   crm: CrmType;
   onDuplicate: () => void;
   disabled?: boolean;
+  duplicateLoading?: boolean;
 }) {
   const { toggleScenarioEnabled } = usePrototypeStore();
 
   return (
     <div
-      onClick={disabled ? undefined : onSelect}
+      onClick={disabled || duplicateLoading ? undefined : onSelect}
       className={cn(
         'p-3 rounded-lg transition-colors border',
         selected ? 'bg-blue-50 border-blue-100' : 'border-transparent',
-        disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'
+        disabled || duplicateLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'
       )}
     >
       {/* Top row: toggle + name */}
       <div className="flex items-start gap-2">
         <button
-          onClick={(e) => { e.stopPropagation(); if (!disabled) toggleScenarioEnabled(crm, scenario.id); }}
-          disabled={disabled}
+          onClick={(e) => { e.stopPropagation(); if (!disabled && !duplicateLoading) toggleScenarioEnabled(crm, scenario.id); }}
+          disabled={disabled || duplicateLoading}
           className={cn(
             'relative inline-flex h-4 w-7 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 mt-0.5',
             scenario.enabled ? 'bg-amber-400' : 'bg-gray-300',
-            disabled ? 'cursor-not-allowed' : 'cursor-pointer'
+            (disabled || duplicateLoading) ? 'cursor-not-allowed' : 'cursor-pointer'
           )}
         >
           <span className={cn(
@@ -172,20 +190,24 @@ export function ScenarioCard({ scenario, selected, onSelect, crm, onDuplicate, d
       {!scenario.isStandard && (
         <div className="flex items-center justify-end gap-1 mt-2 pt-2 border-t border-gray-100/80">
           <button
-            onClick={(e) => { e.stopPropagation(); if (!disabled) onDuplicate(); }}
-            disabled={disabled}
-            className={cn('p-1 rounded transition-colors', disabled ? 'cursor-not-allowed' : 'hover:bg-gray-200/60 cursor-pointer')}
+            onClick={(e) => { e.stopPropagation(); if (!disabled && !duplicateLoading) onDuplicate(); }}
+            disabled={disabled || duplicateLoading}
+            className={cn('p-1 rounded transition-colors', (disabled || duplicateLoading) ? 'cursor-not-allowed' : 'hover:bg-gray-200/60 cursor-pointer')}
             title="Дублировать"
           >
-            <Copy className={cn('w-3.5 h-3.5', disabled ? 'text-gray-300' : 'text-gray-400 hover:text-blue-500')} />
+            {duplicateLoading ? (
+              <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+            ) : (
+              <Copy className={cn('w-3.5 h-3.5', disabled ? 'text-gray-300' : 'text-gray-400 hover:text-blue-500')} />
+            )}
           </button>
           <button
             onClick={(e) => e.stopPropagation()}
-            disabled={disabled}
-            className={cn('p-1 rounded transition-colors', disabled ? 'cursor-not-allowed' : 'hover:bg-red-50 cursor-pointer')}
+            disabled={disabled || duplicateLoading}
+            className={cn('p-1 rounded transition-colors', (disabled || duplicateLoading) ? 'cursor-not-allowed' : 'hover:bg-red-50 cursor-pointer')}
             title="Удалить"
           >
-            <Trash2 className={cn('w-3.5 h-3.5', disabled ? 'text-gray-300' : 'text-gray-400 hover:text-red-500')} />
+            <Trash2 className={cn('w-3.5 h-3.5', (disabled || duplicateLoading) ? 'text-gray-300' : 'text-gray-400 hover:text-red-500')} />
           </button>
         </div>
       )}

@@ -3,12 +3,12 @@
 import { usePrototypeStore, type CrmType } from '@/store/prototype-store';
 import { CrmToggle, LockedExtendedBlock } from './CrmToggle';
 import { ModeTabs } from './ModeTabs';
-import { ScenarioCard, DuplicateModal, LoadingOverlay } from './SharedComponents';
+import { ScenarioCard, DuplicateModal, DuplicateLoadingModal, LoadingOverlay } from './SharedComponents';
 import { cn } from '@/lib/utils';
 import {
   CircleHelp, X, RefreshCw, Plus, Search, Pencil, FolderOpen, Phone,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 function BitrixNavMenu({ activeItem }: { activeItem: string }) {
   const items = [
@@ -35,6 +35,28 @@ function BitrixScenarioSidebar({ crm, search, disabled }: { crm: CrmType; search
   const selectedId = selectedScenarioId[crm];
   const filtered = list.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
+  const [loadingDuplicateId, setLoadingDuplicateId] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDuplicate = (scenarioId: string) => {
+    if (scenarioId === selectedId) {
+      setDuplicateId(scenarioId);
+    } else {
+      setLoadingDuplicateId(scenarioId);
+      timerRef.current = setTimeout(() => {
+        setLoadingDuplicateId(null);
+        setDuplicateId(scenarioId);
+      }, 1500);
+    }
+  };
+
+  const handleCloseDuplicate = () => {
+    setDuplicateId(null);
+  };
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const loadingScenario = loadingDuplicateId ? list.find((s) => s.id === loadingDuplicateId) : null;
 
   return (
     <>
@@ -55,16 +77,21 @@ function BitrixScenarioSidebar({ crm, search, disabled }: { crm: CrmType; search
               selected={selectedId === scenario.id}
               onSelect={() => selectScenario(crm, scenario.id)}
               crm={crm}
-              onDuplicate={() => setDuplicateId(scenario.id)}
+              onDuplicate={() => handleDuplicate(scenario.id)}
               disabled={disabled}
+              duplicateLoading={loadingDuplicateId === scenario.id}
             />
           ))}
       </div>
 
+      {loadingScenario && (
+        <DuplicateLoadingModal scenarioName={loadingScenario.name} />
+      )}
+
       <DuplicateModal
         key={duplicateId}
         open={!!duplicateId}
-        onClose={() => setDuplicateId(null)}
+        onClose={handleCloseDuplicate}
         crm={crm}
         sourceScenario={list.find((s) => s.id === duplicateId)!}
       />
