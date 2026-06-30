@@ -10,25 +10,6 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
-function BitrixNavMenu({ activeItem }: { activeItem: string }) {
-  const items = [
-    { id: 'general', label: 'Общие настройки' },
-    { id: 'users', label: 'Пользователи' },
-    { id: 'scenarios', label: 'Сценарии' },
-    { id: 'numbers', label: 'Многоканальные номера' },
-  ];
-  return (
-    <div className="space-y-0.5">
-      {items.map((item) => (
-        <button key={item.id} className={cn(
-          'w-full text-left px-3 py-2 rounded-md text-[13px] transition-colors cursor-pointer',
-          activeItem === item.id ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-50'
-        )}>{item.label}</button>
-      ))}
-    </div>
-  );
-}
-
 function BitrixScenarioSidebar({ crm, search, disabled }: { crm: CrmType; search: string; disabled?: boolean }) {
   const { amocrmScenarios, bitrix24Scenarios, selectedScenarioId, selectScenario } = usePrototypeStore();
   const list = crm === 'bitrix24' ? bitrix24Scenarios : amocrmScenarios;
@@ -70,16 +51,20 @@ function BitrixScenarioSidebar({ crm, search, disabled }: { crm: CrmType; search
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        <div className="px-1 pb-2 flex items-center justify-between">
-          <h3 className="text-[13px] font-semibold text-gray-800">Мои сценарии</h3>
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 cursor-pointer">
-            <Plus className="w-3 h-3" />Добавить
-          </button>
+      <div className="w-[260px] shrink-0 border-r border-gray-100 bg-white flex flex-col h-full">
+        <div className="p-3 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[13px] font-semibold text-gray-800">Мои сценарии</h3>
+            <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-gray-700 cursor-pointer">
+              <Plus className="w-3.5 h-3.5" />
+              Добавить сценарий
+            </button>
+          </div>
         </div>
-        {filtered.length === 0 && (
-          <p className="text-[11px] text-gray-400 text-center py-4">Ничего не найдено</p>
-        )}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {filtered.length === 0 && (
+            <p className="text-[11px] text-gray-400 text-center py-4">Ничего не найдено</p>
+          )}
           {filtered.map((scenario) => (
             <ScenarioCard
               key={scenario.id}
@@ -93,6 +78,7 @@ function BitrixScenarioSidebar({ crm, search, disabled }: { crm: CrmType; search
               duplicateLoading={loadingDuplicateId === scenario.id}
             />
           ))}
+        </div>
       </div>
 
       {loadingScenario && (
@@ -164,7 +150,7 @@ function CallSectionPanel({ section, crm, scenarioId, sectionType, helpText }: {
 /* ─── Scenario Header Block ─── */
 
 function ScenarioHeaderBlock({ scenario, editingName, nameDraft, onEditName, onNameChange, onCancelEdit, onSaveName, onOpenEmployees }: {
-  scenario: { id: string; name: string; count: number; unit: string };
+  scenario: { id: string; name: string; count: number; unit: string; isStandard?: boolean };
   editingName: boolean;
   nameDraft: string;
   onEditName: () => void;
@@ -195,8 +181,12 @@ function ScenarioHeaderBlock({ scenario, editingName, nameDraft, onEditName, onN
         </button>
       </span>
 
-      {/* Row 2: Editable scenario name */}
-      {editingName ? (
+      {/* Row 2: Scenario name (editable or static) */}
+      {scenario.isStandard ? (
+        <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200 w-fit">
+          <span className="text-[13px] font-medium text-gray-800">{scenario.name}</span>
+        </div>
+      ) : editingName ? (
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -316,14 +306,10 @@ export function Bitrix24Prototype() {
         </div>
       </div>
 
-      {/* 6. Two-column: Мои сценарии (nav + sidebar + settings) */}
+      {/* 6. Two-column: Мои сценарии (sidebar + settings) */}
       <div className="flex flex-1 overflow-hidden border-t border-gray-100">
-        {/* Left: nav menu + scenario list */}
-        <div className="w-[300px] shrink-0 border-r border-gray-100 bg-gray-50/50 flex flex-col">
-          <div className="p-3"><BitrixNavMenu activeItem="scenarios" /></div>
-          <div className="border-t border-gray-100 mx-3" />
-          <BitrixScenarioSidebar crm="bitrix24" search={search} disabled={modeLoading} />
-        </div>
+        {/* Left: scenario list */}
+        <BitrixScenarioSidebar crm="bitrix24" search={search} disabled={modeLoading} />
 
         {/* Scenario settings */}
         <div className="flex-1 overflow-y-auto relative">

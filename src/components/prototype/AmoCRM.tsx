@@ -165,7 +165,7 @@ function CallSectionPanel({ section, crm, scenarioId, sectionType, helpText }: {
 /* ─── Scenario Header Block ─── */
 
 function ScenarioHeaderBlock({ scenario, editingName, nameDraft, onEditName, onNameChange, onCancelEdit, onSaveName, onOpenEmployees }: {
-  scenario: { id: string; name: string; count: number; unit: string };
+  scenario: { id: string; name: string; count: number; unit: string; isStandard?: boolean };
   editingName: boolean;
   nameDraft: string;
   onEditName: () => void;
@@ -196,8 +196,12 @@ function ScenarioHeaderBlock({ scenario, editingName, nameDraft, onEditName, onN
         </button>
       </span>
 
-      {/* Row 2: Editable scenario name */}
-      {editingName ? (
+      {/* Row 2: Scenario name (editable or static) */}
+      {scenario.isStandard ? (
+        <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200 w-fit">
+          <span className="text-[13px] font-medium text-gray-800">{scenario.name}</span>
+        </div>
+      ) : editingName ? (
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
