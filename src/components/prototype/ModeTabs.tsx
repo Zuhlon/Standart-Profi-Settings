@@ -66,23 +66,22 @@ export function CrmTabs() {
   const { activeCrm, setCrm } = usePrototypeStore();
 
   return (
-    <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+    <div className="flex gap-1">
       {[
-        { value: 'amocrm' as const, label: 'amoCRM', color: 'bg-amber-500' },
-        { value: 'bitrix24' as const, label: 'Битрикс24', color: 'bg-sky-500' },
+        { value: 'amocrm' as const, label: 'amoCRM' },
+        { value: 'bitrix24' as const, label: 'Битрикс24' },
       ].map((crm) => (
         <button
           key={crm.value}
           onClick={() => setCrm(crm.value)}
           className={cn(
-            'flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 cursor-pointer',
+            'px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer',
             activeCrm === crm.value
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
+              ? 'text-gray-900'
+              : 'text-gray-400 hover:text-gray-600'
           )}
         >
-          <div className={cn('w-2 h-2 rounded-full', crm.color)} />
-          <span>{crm.label}</span>
+          {crm.label}
         </button>
       ))}
     </div>
