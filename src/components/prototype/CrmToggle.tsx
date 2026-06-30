@@ -91,7 +91,7 @@ export function LockedExtendedBlock({ crm, scenarioId }: LockedExtendedBlockProp
         <div className="flex items-center gap-2">
           <Lock className="w-3.5 h-3.5 text-blue-400" />
           <span className="text-[12px] font-medium text-blue-700">
-            Расширенные настройки
+            Профессиональные настройки
           </span>
           {totalEnabled > 0 && (
             <span className="bg-blue-100 text-blue-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
@@ -123,7 +123,7 @@ export function LockedExtendedBlock({ crm, scenarioId }: LockedExtendedBlockProp
       {/* Tooltip */}
       {showTooltip && (
         <div className="absolute left-0 top-full mt-1.5 z-50 bg-white border border-gray-200 rounded-lg shadow-lg w-[300px] p-3">
-          <p className="text-[11px] font-semibold text-gray-700 mb-2">Настроено в Расширенных:</p>
+          <p className="text-[11px] font-semibold text-gray-700 mb-2">Настроено в режиме «Профессионал»:</p>
           <div className="space-y-1">
             {allItems.map((label) => (
               <div key={label} className="flex items-center gap-2">
