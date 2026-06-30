@@ -297,57 +297,69 @@ export function AmoCRMPrototype() {
 
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-      {/* Header */}
+      {/* 1. Header — CRM name */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <h2 className="text-[15px] font-semibold text-gray-900">Настройка сценариев обработки звонков сотрудников</h2>
-          <CircleHelp className="w-4 h-4 text-gray-400" />
-        </div>
+        <h2 className="text-[15px] font-semibold text-gray-900">amoCRM</h2>
         <button className="flex items-center gap-1 text-[12px] text-gray-500 hover:text-gray-700 cursor-pointer">
           <X className="w-4 h-4" />Закрыть
         </button>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* 2. Heading */}
+      <div className="px-5 pt-4 pb-1">
+        <div className="flex items-center gap-2">
+          <h2 className="text-[15px] font-semibold text-gray-900">Настройка сценариев обработки звонков сотрудников</h2>
+          <CircleHelp className="w-4 h-4 text-gray-400" />
+        </div>
+      </div>
+
+      {/* 3. Mode tabs */}
+      <div className="px-5 py-3">
+        <ModeTabs />
+      </div>
+
+      {/* 4. Global settings */}
+      <div className="px-5 pb-4">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[13px] font-semibold text-gray-800">Настройки для всех сценариев</h3>
+            <button className="flex items-center gap-1 text-[12px] text-blue-500 hover:text-blue-600 font-medium cursor-pointer">
+              <RefreshCw className="w-3.5 h-3.5" />Обновить данные
+            </button>
+          </div>
+          <div className="space-y-0.5">
+            {visibleGlobal.map((setting) => (
+              <CrmToggle key={setting.id} setting={setting} disabled={setting.mode === 'extended' && activeMode === 'basic'} onToggle={() => toggleGlobal('amocrm', setting.id)} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Search */}
+      <div className="px-5 pb-4">
+        <div className="relative max-w-[720px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <input
+            type="text" placeholder="Поиск по номеру"
+            value={search} onChange={(e) => setSearch(e.target.value)}
+            className="w-full h-8 pl-8 pr-3 text-[12px] border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:border-gray-300"
+          />
+        </div>
+      </div>
+
+      {/* 6. Two-column: Мои сценарии (sidebar + settings) */}
+      <div className="flex flex-1 overflow-hidden border-t border-gray-100">
         {/* Sidebar */}
         <ScenarioSidebar crm="amocrm" search={search} onDuplicate={() => {}} disabled={modeLoading} />
 
-        {/* Main content */}
+        {/* Scenario settings */}
         <div className="flex-1 overflow-y-auto relative">
           {modeLoading && <LoadingOverlay />}
           {saving && <SavingOverlay />}
 
           <div className="max-w-[720px] mx-auto p-5 space-y-5">
-            {/* Search — above mode tabs */}
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input
-                type="text" placeholder="Поиск по номеру"
-                value={search} onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-8 pl-8 pr-3 text-[12px] border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:border-gray-300"
-              />
-            </div>
-
-            {/* Mode tabs — inside scenario */}
-            <ModeTabs />
-
             {/* LockedExtendedBlock */}
             <LockedExtendedBlock crm="amocrm" scenarioId={selectedScenario.id} />
-
-            {/* Global settings */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-[13px] font-semibold text-gray-800">Настройки для всех сценариев</h3>
-                <button className="flex items-center gap-1 text-[12px] text-blue-500 hover:text-blue-600 font-medium cursor-pointer">
-                  <RefreshCw className="w-3.5 h-3.5" />Обновить данные
-                </button>
-              </div>
-              <div className="space-y-0.5">
-                {visibleGlobal.map((setting) => (
-                  <CrmToggle key={setting.id} setting={setting} disabled={setting.mode === 'extended' && activeMode === 'basic'} onToggle={() => toggleGlobal('amocrm', setting.id)} />
-                ))}
-              </div>
-            </div>
 
             {/* Scenario header block */}
             <ScenarioHeaderBlock
@@ -387,7 +399,7 @@ export function AmoCRMPrototype() {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* 7. Footer */}
       <div className="flex justify-end px-5 py-3 border-t border-gray-100 bg-gray-50/50">
         <button className="px-6 py-2 bg-amber-400 hover:bg-amber-500 text-gray-900 text-[13px] font-semibold rounded-lg transition-colors cursor-pointer">
           Сохранить и продолжить
