@@ -28,6 +28,7 @@ export interface Scenario {
   name: string;
   count: number;
   unit: string;
+  employeeIds: string[];
   enabled: boolean;
   tagsEnabled: boolean;
   isStandard?: boolean;
@@ -74,6 +75,7 @@ interface PrototypeState {
   duplicateScenario: (crm: CrmType, id: string, newName: string, employeeIds: string[]) => void;
   deleteScenario: (crm: CrmType, id: string) => void;
   createScenario: (crm: CrmType, name: string, employeeIds: string[]) => void;
+  setScenarioEmployees: (crm: CrmType, id: string, employeeIds: string[]) => void;
 }
 
 // --- Toggle factories ---
@@ -125,8 +127,8 @@ const createCallSection = (type: 'incoming' | 'outgoing'): CallSection => {
   };
 };
 
-const createDefaultScenario = (id: string, name: string, count: number, unit: string, isStandard = false): Scenario => ({
-  id, name, count, unit,
+const createDefaultScenario = (id: string, name: string, count: number, unit: string, isStandard = false, employeeIds: string[] = []): Scenario => ({
+  id, name, count, unit, employeeIds,
   enabled: true, tagsEnabled: false, isStandard,
   settings: { incoming: createCallSection('incoming'), outgoing: createCallSection('outgoing') },
 });
@@ -278,6 +280,7 @@ export const usePrototypeStore = create<PrototypeState>()(
             name,
             count: employeeIds.length,
             unit,
+            employeeIds,
             enabled: true,
             tagsEnabled: false,
             isStandard: false,
@@ -289,6 +292,16 @@ export const usePrototypeStore = create<PrototypeState>()(
           return {
             [scenariosKey]: [...scenarios, newScenario],
             selectedScenarioId: { ...state.selectedScenarioId, [crm]: newId },
+          };
+        }),
+
+      setScenarioEmployees: (crm, id, employeeIds) =>
+        set((state) => {
+          const scenariosKey = crm === 'amocrm' ? 'amocrmScenarios' : 'bitrix24Scenarios';
+          return {
+            [scenariosKey]: state[scenariosKey].map((s) =>
+              s.id === id ? { ...s, employeeIds, count: employeeIds.length } : s
+            ),
           };
         }),
     }),

@@ -3,10 +3,10 @@
 import { usePrototypeStore, type CrmType } from '@/store/prototype-store';
 import { CrmToggle, LockedExtendedBlock } from './CrmToggle';
 import { ModeTabs } from './ModeTabs';
-import { ScenarioCard, DuplicateModal, DuplicateLoadingModal, DeleteConfirmModal, AddScenarioModal, LoadingOverlay } from './SharedComponents';
+import { ScenarioCard, DuplicateModal, DuplicateLoadingModal, DeleteConfirmModal, AddScenarioModal, LoadingOverlay, ScenarioEmployeesModal, SavingOverlay } from './SharedComponents';
 import { cn } from '@/lib/utils';
 import {
-  CircleHelp, X, RefreshCw, Plus, Search, Pencil, FolderOpen, Phone,
+  CircleHelp, X, RefreshCw, Plus, Search, Pencil, FolderOpen, Phone, Check,
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
@@ -161,9 +161,91 @@ function CallSectionPanel({ section, crm, scenarioId, sectionType, helpText }: {
   );
 }
 
+/* ─── Scenario Header Block ─── */
+
+function ScenarioHeaderBlock({ scenario, editingName, nameDraft, onEditName, onNameChange, onCancelEdit, onSaveName, onOpenEmployees }: {
+  scenario: { id: string; name: string; count: number; unit: string };
+  editingName: boolean;
+  nameDraft: string;
+  onEditName: () => void;
+  onNameChange: (v: string) => void;
+  onCancelEdit: () => void;
+  onSaveName: () => void;
+  onOpenEmployees: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingName && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingName]);
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+      {/* Row 1: "Сценарий обработки для N номеров" */}
+      <span className="text-[13px] text-gray-500">
+        Сценарий обработки для{' '}
+        <button
+          onClick={onOpenEmployees}
+          className="text-blue-500 hover:text-blue-600 font-medium cursor-pointer underline decoration-blue-300 underline-offset-2"
+        >
+          {scenario.count} {scenario.unit}
+        </button>
+      </span>
+
+      {/* Row 2: Editable scenario name */}
+      {editingName ? (
+        <div className="flex items-center gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={nameDraft}
+            onChange={(e) => onNameChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') onSaveName(); if (e.key === 'Escape') onCancelEdit(); }}
+            className="flex-1 h-8 px-3 text-[13px] font-medium text-gray-800 border border-gray-300 rounded-md focus:outline-none focus:border-gray-400 bg-white"
+          />
+          <button
+            onClick={onSaveName}
+            disabled={!nameDraft.trim()}
+            className={cn(
+              'flex items-center gap-1 px-3 py-1.5 rounded-md text-[12px] font-semibold transition-colors',
+              nameDraft.trim()
+                ? 'bg-amber-400 hover:bg-amber-500 text-gray-900 cursor-pointer'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            )}
+          >
+            <Check className="w-3.5 h-3.5" />
+            Сохранить
+          </button>
+          <button
+            onClick={onCancelEdit}
+            className="p-1.5 rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5 text-gray-400" />
+          </button>
+        </div>
+      ) : (
+        <div
+          onClick={onEditName}
+          className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200 w-fit cursor-pointer hover:border-gray-300 transition-colors"
+        >
+          <span className="text-[13px] font-medium text-gray-800">{scenario.name}</span>
+          <Pencil className="w-3.5 h-3.5 text-gray-400" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Bitrix24Prototype() {
-  const { bitrix24Scenarios, bitrix24Global, selectedScenarioId, toggleGlobal, activeMode, modeLoading, selectScenario } = usePrototypeStore();
+  const { bitrix24Scenarios, bitrix24Global, selectedScenarioId, toggleGlobal, activeMode, modeLoading, selectScenario, renameScenario } = usePrototypeStore();
   const [search, setSearch] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [showEmployeesModal, setShowEmployeesModal] = useState(false);
 
   const selectedScenario = bitrix24Scenarios.find((s) => s.id === selectedScenarioId.bitrix24);
   const visibleGlobal = bitrix24Global.filter((g) => activeMode === 'extended' || g.mode === 'basic');
@@ -205,6 +287,7 @@ export function Bitrix24Prototype() {
         {/* Main content */}
         <div className="flex-1 overflow-y-auto relative">
           {modeLoading && <LoadingOverlay />}
+          {saving && <SavingOverlay />}
 
           <div className="max-w-[720px] mx-auto p-5 space-y-5">
             {/* Search — above mode tabs */}
@@ -238,16 +321,25 @@ export function Bitrix24Prototype() {
               </div>
             </div>
 
-            {/* Scenario selector */}
-            <div className="border border-gray-200 rounded-lg p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] text-gray-500">Сценарий обработки для {selectedScenario.count} {selectedScenario.unit}</span>
-                <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200">
-                  <span className="text-[13px] font-medium text-gray-800">{selectedScenario.name}</span>
-                  <Pencil className="w-3.5 h-3.5 text-gray-400" />
-                </div>
-              </div>
-            </div>
+            {/* Scenario header block */}
+            <ScenarioHeaderBlock
+              crm="bitrix24"
+              scenario={selectedScenario}
+              editingName={editingName}
+              nameDraft={nameDraft}
+              onEditName={() => { setNameDraft(selectedScenario.name); setEditingName(true); }}
+              onNameChange={setNameDraft}
+              onCancelEdit={() => setEditingName(false)}
+              onSaveName={() => {
+                if (nameDraft.trim() && nameDraft.trim() !== selectedScenario.name) {
+                  renameScenario('bitrix24', selectedScenario.id, nameDraft.trim());
+                  setSaving(true);
+                  setTimeout(() => setSaving(false), 2000);
+                }
+                setEditingName(false);
+              }}
+              onOpenEmployees={() => setShowEmployeesModal(true)}
+            />
 
             {/* Incoming */}
             <div className="border-t border-gray-100 pt-4">
@@ -268,6 +360,13 @@ export function Bitrix24Prototype() {
           Сохранить и продолжить
         </button>
       </div>
+
+      <ScenarioEmployeesModal
+        open={showEmployeesModal}
+        onClose={() => setShowEmployeesModal(false)}
+        crm="bitrix24"
+        scenarioId={selectedScenario.id}
+      />
     </div>
   );
 }

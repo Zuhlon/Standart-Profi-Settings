@@ -377,6 +377,120 @@ export function ScenarioCard({ scenario, selected, onSelect, crm, onDuplicate, o
   );
 }
 
+/* ─── Scenario Employees Modal (edit employees for existing scenario) ─── */
+
+export function ScenarioEmployeesModal({ open, onClose, crm, scenarioId }: {
+  open: boolean;
+  onClose: () => void;
+  crm: CrmType;
+  scenarioId: string;
+}) {
+  const { setScenarioEmployees } = usePrototypeStore();
+  const [selected, setSelected] = useState<string[]>(() => {
+    if (!open) return [];
+    const s = usePrototypeStore.getState();
+    const scenarios = crm === 'amocrm' ? s.amocrmScenarios : s.bitrix24Scenarios;
+    const scenario = scenarios.find((sc) => sc.id === scenarioId);
+    return scenario?.employeeIds ?? [];
+  });
+
+  if (!open) return null;
+
+  const toggleEmployee = (id: string) => {
+    setSelected((prev) => prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]);
+  };
+
+  const handleDone = () => {
+    setScenarioEmployees(crm, scenarioId, selected);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-xl w-[420px] max-h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="text-[14px] font-semibold text-gray-900">Сотрудники сценария</h3>
+          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 cursor-pointer">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          <div>
+            <label className="block text-[12px] font-medium text-gray-600 mb-1.5">
+              Сотрудники
+              {selected.length > 0 && (
+                <span className="ml-1.5 text-[11px] text-blue-500 font-normal">
+                  Выбрано: {selected.length}
+                </span>
+              )}
+            </label>
+            <div className="border border-gray-200 rounded-lg max-h-[220px] overflow-y-auto">
+              {MOCK_EMPLOYEES.map((emp) => (
+                <label
+                  key={emp.id}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors',
+                    selected.includes(emp.id) ? 'bg-blue-50' : 'hover:bg-gray-50'
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(emp.id)}
+                    onChange={() => toggleEmployee(emp.id)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400"
+                  />
+                  <User className="w-4 h-4 text-gray-400 shrink-0" />
+                  <span className="text-[13px] text-gray-700">{emp.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-[13px] text-gray-600 hover:text-gray-800 font-medium cursor-pointer"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={handleDone}
+            disabled={selected.length === 0}
+            className={cn(
+              'px-5 py-2 text-[13px] font-semibold rounded-lg transition-colors flex items-center gap-1.5',
+              selected.length > 0
+                ? 'bg-amber-400 hover:bg-amber-500 text-gray-900 cursor-pointer'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            )}
+          >
+            <Check className="w-4 h-4" />
+            Готово
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Saving Overlay ─── */
+
+export function SavingOverlay() {
+  return (
+    <div className="absolute inset-0 z-40 bg-white/80 flex items-center justify-center backdrop-blur-[1px]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+        <span className="text-[12px] text-gray-500">Сохранение настроек...</span>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Loading Overlay ─── */
 
 export function LoadingOverlay() {
